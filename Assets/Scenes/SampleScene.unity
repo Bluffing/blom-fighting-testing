@@ -183,7 +183,7 @@ Camera:
   far clip plane: 1000
   field of view: 60
   orthographic: 1
-  orthographic size: 24.101612
+  orthographic size: 46
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
@@ -407,8 +407,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   speed: 15
-  throwRadius: 251
-  waveBounce: 0
+  throwRadius: 25
+  waveBounce: 1
   map: {fileID: 1730917593}
   testThrowPrefab: {fileID: 3839335191453253509, guid: c9c9db5b67e86964e8b4602c1164d963, type: 3}
   testThrowElement: 7

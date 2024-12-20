@@ -33,6 +33,7 @@ public static class MapCircles
                     edge.Add(cornerVector4[i] * relativePoint);
             }
         mapCirclesList.Add(edge.ToArray());
+        // Debug.Log("Add edge of circle radius " + radius);
     }
     public static Vector2Int[] GetEdgeOfCircleVectors(int radius)
     {

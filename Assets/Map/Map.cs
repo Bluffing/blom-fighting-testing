@@ -25,6 +25,10 @@ public class Map : MonoBehaviour
     float lastTick = 0;
     Dictionary<uint, List<MapTickEffect>> DelayedTickEffectMap = new Dictionary<uint, List<MapTickEffect>>();
 
+    readonly byte bounceCheckTickLength = 5;
+    readonly byte bounceCheckDistance = 2;
+    Dictionary<uint, HashSet<(int x, int y)>> BounceMap = new Dictionary<uint, HashSet<(int x, int y)>>();
+
 
     void Start()
     {
@@ -67,16 +71,7 @@ public class Map : MonoBehaviour
 
             var mapCopy = map.Clone() as MapBotElement[,];
             // Debug.Log($"tick ({tick}) count: {DelayedTickEffectMap[tick].Count}");
-            Debug.Log($"tick ({tick}) count: {DelayedTickEffectMap[tick].Count}\nbounce count: {waveBounceCounter}, waveOp: {waveOp}, complexWaveOp: {complexWaveOp}\nratio: {(double)complexWaveOp / (waveOp + 1) * 100}%\ndelta: {Time.deltaTime}");
-            // string path = Application.persistentDataPath + "/test.txt";
-            // Debug.Log($"path: {path}");
-            // StreamWriter writer = new StreamWriter(path, true);
-            using (StreamWriter writer = File.CreateText("Assets/Map/testos.txt"))
-            {
-                writer.WriteLine(bleak);
-            }
-            // writer.WriteLine("\n\nBLEAK\n\n");
-            // writer.Close();
+            Debug.Log($"tick ({tick}) count: {DelayedTickEffectMap[tick].Count}\nbounce count: {waveBounceCounter}, complexWaveOp: {complexWaveOp}\ndelta: {Time.deltaTime}");
 
             for (int i = 0; i < DelayedTickEffectMap[tick].Count; i++)
                 ApplyTickEffect(DelayedTickEffectMap[tick][i]);
@@ -85,6 +80,14 @@ public class Map : MonoBehaviour
             prevTickMap = mapCopy;
             // Debug.Log($"tick ({tick}) done");
         }
+
+        // clear bounce map
+        var bounceKeysToRemove = new List<uint>();
+        foreach (uint k in BounceMap.Keys)
+            if (k < tick - bounceCheckTickLength)
+                bounceKeysToRemove.Add(k);
+        foreach (uint k in bounceKeysToRemove)
+            BounceMap.Remove(k);
 
         if (updatedMap)
         {
@@ -95,6 +98,7 @@ public class Map : MonoBehaviour
 
     void DebugUpdate()
     {
+        throw new Exception("this is not up to date");
         if (Input.GetKeyDown(KeyCode.N))
         {
             if (DelayedTickEffectMap.Count == 0)
@@ -108,8 +112,8 @@ public class Map : MonoBehaviour
             while (!DelayedTickEffectMap.ContainsKey(tick))
                 tick++;
 
-            Debug.Log($"next tick : {tick}");
-            Debug.Log($"count: {DelayedTickEffectMap[tick].Count}");
+            // Debug.Log($"next tick : {tick}");
+            // Debug.Log($"count: {DelayedTickEffectMap[tick].Count}");
 
             for (int i = 0; i < DelayedTickEffectMap[tick].Count; i++)
             {
@@ -175,12 +179,6 @@ public class Map : MonoBehaviour
 
         new Vector2Int(0, 1),
         new Vector2Int(0, -1),
-    };
-    static Vector2Int[] cornerVector4 = new Vector2Int[] {
-        new Vector2Int(1, 1),
-        new Vector2Int(1, -1),
-        new Vector2Int(-1, 1),
-        new Vector2Int(-1, -1),
     };
     bool XYIsInMap(int x, int y) => x >= 0 && x < width && y >= 0 && y < height;
     bool XYIsInMap(Vector2Int pos) => pos.x >= 0 && pos.x < width && pos.y >= 0 && pos.y < height;
@@ -256,119 +254,6 @@ public class Map : MonoBehaviour
                 }
     }
 
-    #region old
-    // public bool AddCircleEdge(MapTickEffect tickEffect, Vector2Int center, int radius, bool propagating = false, MapBotElement propagatingElem = MapBotElement.Neutral, MapBotElement[] passThrough = null)
-    // {
-    //     MapTickEffect newEffect(Vector2Int pos)
-    //     {
-    //         switch (tickEffect.EffectType)
-    //         {
-    //             case MapTickEffectType.Set:
-    //                 var setEffect = (MapTickEffectSet)tickEffect;
-    //                 var copySet = (MapTickEffectSet)setEffect.Clone();
-    //                 copySet.position = pos;
-    //                 return copySet;
-    //             case MapTickEffectType.ConditionalSet:
-    //                 var condSetEffect = (MapTickEffectConditionalSet)tickEffect;
-    //                 var copyCondSet = (MapTickEffectConditionalSet)condSetEffect.Clone();
-    //                 copyCondSet.position = pos;
-    //                 return copyCondSet;
-    //             default:
-    //                 return null;
-    //         }
-    //     }
-    //     bool checkPropagating(Vector2Int pos)
-    //     {
-    //         if (!propagating)
-    //             return true;
-
-    //         for (int i = 0; i < sidesVector8.Length; i++)
-    //         {
-    //             var s = pos + sidesVector8[i];
-    //             if (XYIsInMap(s) && prevTickMap[s.x, s.y] == propagatingElem)
-    //                 return true;
-    //         }
-
-    //         return false;
-    //     }
-    //     bool checkCollision(Vector2Int pos)
-    //     {
-    //         if (passThrough is null)
-    //             return false;
-
-    //         int xDistance = Mathf.Abs(pos.x - center.x);
-    //         int yDistance = Mathf.Abs(pos.y - center.y);
-    //         if (xDistance <= 1 && yDistance <= 1)
-    //             return false;
-
-    //         bool collide(int x, int y) => !XYIsInMap(x, y) || Array.IndexOf(passThrough, prevTickMap[x, y]) == -1;
-
-    //         if (xDistance >= yDistance)
-    //         {
-    //             // larger x diff, calculate y
-    //             float a = (float)(pos.y - center.y) / (pos.x - center.x);
-    //             int diff = pos.x - center.x;
-    //             int increment = diff > 0 ? 1 : -1;
-    //             bool endLambda(int x) => diff > 0 ? x < diff : x > diff;
-
-    //             for (int x = 0; endLambda(x); x += increment)
-    //             {
-    //                 int y = Mathf.RoundToInt(a * x + center.y);
-    //                 int realX = x + center.x;
-
-    //                 if (collide(realX, y))
-    //                     return true;
-    //             }
-    //         }
-    //         else
-    //         {
-    //             // larger y diff, calculate x
-    //             float a = (float)(pos.x - center.x) / (pos.y - center.y);
-    //             int diff = pos.y - center.y;
-    //             int increment = diff > 0 ? 1 : -1;
-    //             bool endLambda(int y) => diff > 0 ? y < diff : y > diff;
-
-    //             for (int y = 0; endLambda(y); y += increment)
-    //             {
-    //                 int x = Mathf.RoundToInt(y * a + center.x);
-    //                 int realY = y + center.y;
-    //                 if (collide(x, realY))
-    //                     return true;
-    //             }
-    //         }
-    //         return false;
-    //     }
-
-    //     var effect = new List<MapTickEffect>();
-
-    //     for (int x = 0; x < radius; x++)
-    //         for (int y = 0; y < radius; y++)
-    //         {
-    //             int lengthSquared = x * x + y * y;
-    //             int radiusSquared = radius * radius;
-    //             int radiusMin1Squared = (radius - 1) * (radius - 1);
-
-    //             if (lengthSquared >= radiusSquared || lengthSquared < radiusMin1Squared)
-    //                 continue;
-
-    //             Vector2Int relativePoint = new Vector2Int(x, y);
-    //             for (int i = 0; i < cornerVector4.Length; i++)
-    //             {
-    //                 var localPoint = center + cornerVector4[i] * relativePoint;
-    //                 if (checkCollision(localPoint))
-    //                     continue;
-
-    //                 if (XYIsInMap(localPoint) && checkPropagating(localPoint))
-    //                     effect.Add(newEffect(localPoint));
-    //             }
-    //         }
-
-    //     ApplyTickEffect(effect.ToArray());
-    //     return effect.Count > 0;
-    // }
-    #endregion
-
-    string bleak = "";
     public bool AddCircleEdge(MapTickEffectWave waveEffect)
     {
         MapTickEffect newEffect(Vector2Int pos)
@@ -389,7 +274,7 @@ public class Map : MonoBehaviour
                     return null;
             }
         }
-        bool canPropagating(Vector2Int pos)
+        bool canPropagate(Vector2Int pos)
         {
             if (!waveEffect.propagating)
                 return true;
@@ -409,6 +294,8 @@ public class Map : MonoBehaviour
         {
             if (waveEffect.passThrough is null)
                 return false;
+            if (!XYIsInMap(pos))
+                return true;
 
             int xDistance = Mathf.Abs(pos.x - waveEffect.center.x);
             int yDistance = Mathf.Abs(pos.y - waveEffect.center.y);
@@ -496,7 +383,7 @@ public class Map : MonoBehaviour
             }
             else if (Array.IndexOf(waveEffect.passThrough, map[nextStep.x, nextStep.y]) == -1)
                 return true;
-            return false;
+            // return false;
             return !XYIsInMap(nextStep) || Array.IndexOf(waveEffect.passThrough, map[nextStep.x, nextStep.y]) == -1;
         }
 
@@ -508,69 +395,75 @@ public class Map : MonoBehaviour
         }
         var effect = new List<MapTickEffect>();
 
-        string s = "new Vector2Int[] {";
+        Vector2Int[] edge = MapCircles.GetEdgeOfCircleVectors(waveEffect.radius);
+        for (int i = 0; i < edge.Length; i++)
+        {
+            complexWaveOp++;
+            var localPoint = waveEffect.center + edge[i];
 
-        for (int x = 0; x < waveEffect.radius; x++)
-            for (int y = 0; y < waveEffect.radius; y++)
+            if (collides(localPoint))
+                continue;
+
+            if (nextStepCollides(localPoint) && waveEffect.bounce && waveEffect.hasDoneSomething > 0)
             {
-                waveOp++;
-
-                int lengthSquared = x * x + y * y;
-                int radiusSquared = waveEffect.radius * waveEffect.radius;
-                int radiusMin1Squared = (waveEffect.radius - 1) * (waveEffect.radius - 1);
-
-                if (lengthSquared >= radiusSquared || lengthSquared < radiusMin1Squared)
-                    continue;
-
-                complexWaveOp++;
-
-                Vector2Int relativePoint = new Vector2Int(x, y);
-                for (int i = 0; i < cornerVector4.Length; i++)
+                #region already bounced check
+                var alreadyHasBounce = false;
+                int lpx = localPoint.x;
+                int lpy = localPoint.y;
+                for (uint c = 0; c < bounceCheckTickLength; c++)
                 {
-                    var localPoint = waveEffect.center + cornerVector4[i] * relativePoint;
-
-                    s += $"new Vector2Int({(cornerVector4[i] * relativePoint).x}, {(cornerVector4[i] * relativePoint).y}), ";
-
-                    if (collides(localPoint))
+                    if (!BounceMap.ContainsKey(tick - c))
                         continue;
 
-                    if (nextStepCollides(localPoint) && waveEffect.bounce && waveEffect.hasDoneSomething > 0)
+                    var bounceSet = BounceMap[tick - c];
+                    for (int bx = -bounceCheckDistance; bx < bounceCheckDistance; bx++)
                     {
-                        var wave = (MapTickEffectWave)waveEffect.Clone();
-                        wave.center = localPoint;
-                        wave.radius = 1;
-                        wave.hasDoneSomething = 0;
-                        wave.bounce = false;
-
-                        waveBounceCounter++;
-                        // Debug.Log($"tick ({tick}) start bounce at {localPoint} id: {wave.id}");
-                        // Debug.Log($"from {waveEffect.id} {waveEffect.center} with {waveEffect.hasDoneSomething} effects");
-                        StartWave(wave);
-                        continue;
+                        for (int by = -bounceCheckDistance; by < bounceCheckDistance; by++)
+                            if (bounceSet.Contains((lpx + bx, lpy + by)))
+                            {
+                                alreadyHasBounce = true;
+                                break;
+                            }
+                        if (alreadyHasBounce)
+                            break;
                     }
-
-                    if (XYIsInMap(localPoint) && canPropagating(localPoint))
-                    {
-                        effect.Add(newEffect(localPoint));
-                        continue;
-                    }
+                    if (alreadyHasBounce)
+                        break;
                 }
+                if (alreadyHasBounce)
+                    continue;
+                if (!BounceMap.ContainsKey(tick))
+                    BounceMap.Add(tick, new HashSet<(int x, int y)>());
+                BounceMap[tick].Add((lpx, lpy));
+                #endregion already bounced check
+
+                var wave = (MapTickEffectWave)waveEffect.Clone();
+                wave.center = localPoint;
+                wave.radius = 1;
+                wave.hasDoneSomething = 0;
+                wave.bounce = true;
+
+                waveBounceCounter++;
+                // Debug.Log($"tick ({tick}) start bounce at {localPoint} id: {wave.id}");
+                // Debug.Log($"from {waveEffect.id} {waveEffect.center} with {waveEffect.hasDoneSomething} effects");
+                StartWave(wave);
+                continue;
             }
 
+            if (XYIsInMap(localPoint) && canPropagate(localPoint))
+            {
+                effect.Add(newEffect(localPoint));
+                continue;
+            }
+        }
+
         waveEffect.hasDoneSomething += effect.Count;
-        // waveEffect.hasDoneSomething = true;
-        Debug.Log($"radius: {waveEffect.radius}");
-        s += $"}}, // {waveEffect.radius}\n";
-        bleak += s;
-        // Debug.Log(s);
 
         ApplyTickEffect(effect.ToArray());
         return effect.Count > 0;
     }
     int waveBounceCounter = 0;
-    ulong waveOp = 0;
     ulong complexWaveOp = 0;
-
 
     public void StartWaveFromWorld(MapTickEffectWave waveEffect, Vector2 mouseClick)
     {
@@ -687,13 +580,9 @@ public class Map : MonoBehaviour
                 var circleEdgeRes = AddCircleEdge(waveEffect);
                 if (circleEdgeRes)
                 {
-                    // foreach (var v2i in waveEffect.collisions)
-                    //     SetElementToXY(MapBotElement.Error, v2i.x, v2i.y, false);
                     waveEffect.radius++;
                     AddDelayedEffect(waveEffect.tickDelay, waveEffect);
                 }
-                // else
-                //     Debug.Log("wave end");
                 break;
             default:
                 break;

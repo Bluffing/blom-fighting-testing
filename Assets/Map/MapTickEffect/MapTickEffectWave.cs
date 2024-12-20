@@ -12,7 +12,7 @@ public class MapTickEffectWave : MapTickEffect
     public MapBotElement[] passThrough;
     public bool bounce = false;
     public int hasDoneSomething = 0;
-    public int id = Random.Range(0, 1000000);
+    // public int id = Random.Range(0, 1000000);
 
     public override string ToString()
     {
@@ -26,6 +26,8 @@ public class MapTickEffectWave : MapTickEffect
             center = center,
             tickDelay = tickDelay,
             radius = radius,
+            propagating = propagating,
+            propagatingElem = propagatingElem,
             passThrough = passThrough,
             bounce = bounce,
             hasDoneSomething = hasDoneSomething
