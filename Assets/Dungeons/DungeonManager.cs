@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Assertions.Must;
 
 public class DungeonManager : MonoBehaviour
 {
@@ -118,6 +119,27 @@ public class DungeonManager : MonoBehaviour
                     roomSpacesAvailable[x + a.x, y + a.y] = room;
 
                 index = ++index % shuffledRooms.Length;
+            }
+
+        // neighbours
+        Vector2Int[] sides = new Vector2Int[]
+        {
+            new(0, 1),
+            new(1, 0),
+            new(0, -1),
+            new(-1, 0)
+        };
+        for (int y = 0; y < height; y++)
+            for (int x = 0; x < width; x++)
+            {
+                var room = roomSpacesAvailable[x, y].GetComponent<RoomInfo>();
+                for (int i = 0; i < 4; i++)
+                {
+                    if (!validPos(x + sides[i].x, y + sides[i].y)) continue;
+                    var neighbour = roomSpacesAvailable[x + sides[i].x, y + sides[i].y];
+                    if (neighbour != roomSpacesAvailable[x, y] && !room.Neighbours.Contains(neighbour))
+                        room.Neighbours.Add(neighbour);
+                }
             }
     }
 }
