@@ -29,7 +29,9 @@ public class Actions : MonoBehaviour
     void Update()
     {
         MovementUpdate();
-        ClickUpdate();
+
+        if (map is not null)
+            ClickUpdate();
     }
 
     #region Movement

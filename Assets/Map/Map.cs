@@ -530,19 +530,19 @@ public class Map : MonoBehaviour
 
                 case MapCombineEffectType.WaveSet:
                     throw new NotImplementedException();
-                    // var waveSetEffect = (MapCombineEffectWaveStartBot)effect;
-                    // StartWave(waveSetEffect.mapTickEffect, new Vector2Int(x, y), true, waveSetEffect.)
+                // var waveSetEffect = (MapCombineEffectWaveStartBot)effect;
+                // StartWave(waveSetEffect.mapTickEffect, new Vector2Int(x, y), true, waveSetEffect.)
 
-                    // AddCircleEdge(waveSetEffect.mapTickEffect, new Vector2Int(x, y), waveSetEffect.startingRadius);
-                    // AddDelayedEffect(waveSetEffect.tickDelay, new MapTickEffectWave()
-                    // {
-                    //     mapTickEffect = waveSetEffect.mapTickEffect,
-                    //     center = new Vector2Int(x, y),
-                    //     radius = waveSetEffect.startingRadius + 1,
-                    // });
+                // AddCircleEdge(waveSetEffect.mapTickEffect, new Vector2Int(x, y), waveSetEffect.startingRadius);
+                // AddDelayedEffect(waveSetEffect.tickDelay, new MapTickEffectWave()
+                // {
+                //     mapTickEffect = waveSetEffect.mapTickEffect,
+                //     center = new Vector2Int(x, y),
+                //     radius = waveSetEffect.startingRadius + 1,
+                // });
 
-                    // DelayedTickEffectMap.Add(tick + waveSetEffect.tickDelay, new List<MapCellEffect>() { waveSetEffect });
-                    continue;
+                // DelayedTickEffectMap.Add(tick + waveSetEffect.tickDelay, new List<MapCellEffect>() { waveSetEffect });
+                // continue;
 
                 default:
                     continue;
