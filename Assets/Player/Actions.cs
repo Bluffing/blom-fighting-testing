@@ -2,27 +2,39 @@ using UnityEngine;
 
 public class Actions : MonoBehaviour
 {
-    [Range(1, 100)]
-    public float speed;
-
     [Range(1, 300)]
     public int throwRadius = 10;
     public bool waveBounce = false;
 
+    // todo remove
     public Map map;
 
+    public Transform debugAxis;
+    public Transform arrow;
+    public bool debugMovement = false;
 
-    #region throw properrties
+    #region Weapon
+
+    public WeaponType currentWeapon = WeaponType.None;
+    public MonoBehaviour weaponActions;
+    private IWeaponActions WeaponActions;
+
+    #endregion Weapon
+
+
+    #region Throw Properties
 
     public GameObject testThrowPrefab;
     public MapBotElement testThrowElement = MapBotElement.Fire;
 
-    #endregion
+    #endregion Throw Properties
 
     // Start is called before the first frame update
     void Start()
     {
-
+        if (weaponActions is not IWeaponActions)
+            throw new System.Exception($"WeaponActions is not of type IWeaponActions: {weaponActions.GetType()}");
+        WeaponActions = (IWeaponActions)weaponActions;
     }
 
     // Update is called once per frame
@@ -38,17 +50,51 @@ public class Actions : MonoBehaviour
 
     void MovementUpdate()
     {
-        var move = Vector3.zero;
-        if (Input.GetKey(KeyCode.W))
-            move += new Vector3(0, 1, 0);
-        if (Input.GetKey(KeyCode.S))
-            move += new Vector3(0, -1, 0);
-        if (Input.GetKey(KeyCode.D))
-            move += new Vector3(1, 0, 0);
-        if (Input.GetKey(KeyCode.A))
-            move += new Vector3(-1, 0, 0);
-        transform.position += Vector3.Normalize(move) * speed * Time.deltaTime;
+        switch (currentWeapon)
+        {
+            case WeaponType.None:
+                break;
+            case WeaponType.Greatsword:
+                WeaponActions.MovementUpdate(debugMovement);
+                break;
+            default:
+                break;
+        }
+
+        // var move = Vector3.zero;
+
+        // if (debugMovement)
+        // {
+        //     // stuttered
+        //     if (Input.GetKeyDown(KeyCode.W))
+        //         move += new Vector3(0, 1, 0);
+        //     if (Input.GetKeyDown(KeyCode.S))
+        //         move += new Vector3(0, -1, 0);
+        //     if (Input.GetKeyDown(KeyCode.D))
+        //         move += new Vector3(1, 0, 0);
+        //     if (Input.GetKeyDown(KeyCode.A))
+        //         move += new Vector3(-1, 0, 0);
+        // }
+        // else
+        // {
+        //     if (Input.GetKey(KeyCode.W))
+        //         move += new Vector3(0, 1, 0);
+        //     if (Input.GetKey(KeyCode.S))
+        //         move += new Vector3(0, -1, 0);
+        //     if (Input.GetKey(KeyCode.D))
+        //         move += new Vector3(1, 0, 0);
+        //     if (Input.GetKey(KeyCode.A))
+        //         move += new Vector3(-1, 0, 0);
+        // }
+
+        // if (move != Vector3.zero)
+        // {
+        //     debugAxis.rotation = Quaternion.Euler(0, 0, Mathf.Atan2(move.y, move.x) * Mathf.Rad2Deg - 90);
+        //     arrow.rotation = Quaternion.Euler(0, 0, Mathf.Atan2(move.y, move.x) * Mathf.Rad2Deg - 90);
+        //     transform.position += move.normalized * speed * Time.deltaTime;
+        // }
     }
+
 
     #endregion
 
@@ -124,4 +170,10 @@ public class Actions : MonoBehaviour
     }
 
     #endregion
+}
+
+public enum WeaponType
+{
+    None = 0,
+    Greatsword = 1,
 }

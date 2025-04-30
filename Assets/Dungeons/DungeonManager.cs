@@ -47,9 +47,25 @@ public class DungeonManager : MonoBehaviour
             Gen();
     }
 
-
+    void CleanEditor()
+    {
+        DungeonManagerHelper.Instance.ChangeRooms(RoomsPrefab);
+        while (transform.childCount > 0)
+            DestroyImmediate(transform.GetChild(0).gameObject);
+    }
+    void CleanPlaying()
+    {
+        while (transform.childCount > 0)
+            Destroy(transform.GetChild(0).gameObject);
+    }
     public void Gen()
     {
+        // todo : remove
+        if (!Application.isPlaying)
+            CleanEditor();
+        else
+            CleanPlaying();
+
         GenRooms();
         GenConnectors();
     }
@@ -67,25 +83,8 @@ public class DungeonManager : MonoBehaviour
         return room;
     }
 
-    void CleanEditor()
-    {
-        DungeonManagerHelper.Instance.ChangeRooms(RoomsPrefab);
-        while (transform.childCount > 0)
-            DestroyImmediate(transform.GetChild(0).gameObject);
-    }
-    void CleanPlaying()
-    {
-        while (transform.childCount > 0)
-            Destroy(transform.GetChild(0).gameObject);
-    }
-
     public void GenRooms()
     {
-        // todo : remove
-        if (!Application.isPlaying)
-            CleanEditor();
-        else
-            CleanPlaying();
 
         rooms = new GameObject[width, height];
         for (int y = 0; y < height; y++)
@@ -230,19 +229,23 @@ public class DungeonManager : MonoBehaviour
             conn.transform.localScale = new Vector3(roomWidth, roomHeight, 1);
         }
 
+        Dictionary<GameObject, List<GameObject>> alreadyLinked = new();
         for (int y = 0; y < height; y++)
             for (int x = 0; x < width; x++)
             {
                 var currentRoom = rooms[x, y].GetComponent<RoomInfo>();
+                if (!alreadyLinked.ContainsKey(currentRoom.gameObject))
+                    alreadyLinked[rooms[x, y]] = new();
 
                 var coord = new Vector2Int(x, y);
                 var selfos = coord * (roomWidth + ROOM_GAP) + step;
                 foreach (var connectorInfo in currentRoom.Connected.Select(c => c.GetComponent<RoomInfo>()))
                     foreach (var space in connectorInfo.SpaceUsed)
-                        if (isNextTo(coord, connectorInfo.position + space))
+                        if (isNextTo(coord, connectorInfo.position + space) && (!alreadyLinked[currentRoom.gameObject].Contains(connectorInfo.gameObject) || rng.Next(10) == 0))
                         {
                             Debug.DrawLine(selfos, (connectorInfo.position + space) * (roomWidth + ROOM_GAP) + step, Color.red, 0.1f);
                             SpawnConnector(coord, connectorInfo.position + space);
+                            alreadyLinked[currentRoom.gameObject].Add(connectorInfo.gameObject);
                         }
             }
 

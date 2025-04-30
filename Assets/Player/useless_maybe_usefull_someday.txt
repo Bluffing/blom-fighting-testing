@@ -1,0 +1,175 @@
+    private List<Vector2> IntersectionPoints(Vector2 center, float r, Vector2 starting, Vector2 step)
+    {
+        // circle : (x-h)^2 + (y-k)^2 = r^2
+        var h = center.x;
+        var k = center.y;
+
+        var newPos = starting + step;
+
+        bool Between(float p, float a, float b) => p >= Mathf.Min(a, b) && p <= Mathf.Max(a, b);
+        var pts = new List<Vector2>();
+
+        if (step.x != 0 && step.y != 0) // is not vertical or horizontal
+        {
+            // line : y = mx + c
+            float m = step.x / step.y;
+            float c = starting.y - m * starting.x;
+            // Debug.Log($"y = {m}x + {c}");
+
+            // Substitute y = mx + c into the circle equation
+            // (x - h)² + (mx + c - k)² = r²
+            // simplify -> ax² + bx + d = 0
+            float a = 1 + m * m;
+            float b = -2 * h + 2 * m * (c - k);
+            float d = h * h + (c - k) * (c - k) - r * r;
+
+            // discriminant : D = b² - 4ac
+            float discriminant = b * b - 4 * a * d;
+
+            if (discriminant > 0)
+            {
+                // Two intersection points
+                float x1 = (float)(-b + Mathf.Sqrt(discriminant)) / (2 * a);
+                float x2 = (float)(-b - Mathf.Sqrt(discriminant)) / (2 * a);
+
+                float y1 = m * x1 + c;
+                float y2 = m * x2 + c;
+
+                Debug.Log("Two intersection points:");
+                Debug.Log($"({x1}, {y1})");
+                Debug.Log($"({x2}, {y2})");
+
+                if (Between(x1, starting.x, newPos.x) && Between(y1, starting.y, newPos.y))
+                    pts.Add(new Vector2(x1, y1));
+                if (Between(x2, starting.x, newPos.x) && Between(y2, starting.y, newPos.y))
+                    pts.Add(new Vector2(x2, y2));
+            }
+            else if (discriminant == 0)
+            {
+                // One intersection point (tangent)
+                float x = -b / (2 * a);
+                float y = m * x + c;
+
+                Debug.Log("One intersection point (tangent):");
+                Debug.Log($"({x}, {y})");
+
+                if (Between(x, starting.x, newPos.x) && Between(y, starting.y, newPos.y))
+                    pts.Add(new Vector2(x, y));
+            }
+            else // : no intersection
+                Debug.Log("no intersection");
+        }
+        else if (step.y != 0)
+        {
+            float y = starting.y;
+
+            // Substitute into circle equation: (x - h)² + (y - k)² = r²
+            float term = r * r - (y - k) * (y - k);
+
+            if (term > 0)
+            {
+                // Two solutions for y
+                float x1 = h + (float)Mathf.Sqrt(term);
+                float x2 = h - (float)Mathf.Sqrt(term);
+                Debug.Log("Two intersection points:");
+                Debug.Log($"({x1}, {y})");
+                Debug.Log($"({x2}, {y})");
+
+                if (Between(y, starting.y, newPos.y))
+                {
+                    if (Between(x1, starting.x, newPos.x))
+                        pts.Add(new Vector2(x1, y));
+                    if (Between(x2, starting.x, newPos.x))
+                        pts.Add(new Vector2(x2, y));
+                }
+            }
+            else if (term == 0)
+            {
+                // One solution (tangent)
+                float x = h;
+                Debug.Log("One intersection point (tangent):");
+                Debug.Log($"({x}, {y})");
+
+                if (Between(x, starting.x, newPos.x) && Between(y, starting.y, newPos.y))
+                    pts.Add(new Vector2(x, y));
+            }
+            else // : no intersection
+                Debug.Log("no intersection");
+        }
+        else // vertical lign (step.x == 0)
+        {
+            float x = starting.x;
+
+            // Substitute into circle equation: (x - h)² + (y - k)² = r²
+            float term = r * r - (x - h) * (x - h);
+
+            if (term > 0)
+            {
+                // Two solutions for y
+                float y1 = k + (float)Mathf.Sqrt(term);
+                float y2 = k - (float)Mathf.Sqrt(term);
+                Debug.Log("Two intersection points:");
+                Debug.Log($"({x}, {y1})");
+                Debug.Log($"({x}, {y2})");
+
+                if (Between(x, starting.x, newPos.x))
+                {
+                    if (Between(y1, starting.y, newPos.y))
+                        pts.Add(new Vector2(x, y1));
+                    if (Between(y2, starting.y, newPos.y))
+                        pts.Add(new Vector2(x, y2));
+                }
+            }
+            else if (term == 0)
+            {
+                // One solution (tangent)
+                float y = k;
+                Debug.Log("One intersection point (tangent):");
+                Debug.Log($"({x}, {y})");
+
+                if (Between(x, starting.x, newPos.x) && Between(y, starting.y, newPos.y))
+                    pts.Add(new Vector2(x, y));
+            }
+            else // : no intersection
+                Debug.Log("no intersection");
+        }
+
+        return pts;
+    }
+
+    private Vector2 MoveAroundCircle(Vector2 center, float r, Vector2 starting, Vector2 step)
+    {
+        var intersections = IntersectionPoints(center, r, starting, step);
+        float circumference = 2 * Mathf.PI * r;
+
+        Debug.Log($"what : {intersections.Count}");
+        if (intersections.Count == 0) // no collision
+            return starting + step;
+
+        if (intersections.Count == 1)
+        {
+            var pts = intersections[0];
+            Debug.Log($"pts : {pts}");
+            // starting is on circle
+            if (pts == starting)
+            {
+                // Debug.Log("bleak starting on circle");
+                var endingInCircle = Vector2.Distance(starting + step, center) < r;
+                if (endingInCircle)
+                {
+                    // move around circle
+                    var sign = Vector2.SignedAngle(starting - center, step) > 0 ? -1 : 1;
+                    float moveRatio = step.magnitude / circumference * 360;
+                    Debug.Log($"from edge of circle to inside : {sign}");
+                    return new Vector2(center.x + r * Mathf.Cos(moveRatio) * sign, center.y + r * Mathf.Sin(moveRatio) * sign);
+                }
+                else
+                    return starting + step;
+            }
+        }
+
+
+
+        Debug.Log("not yet impl");
+        return starting + step;
+    }
