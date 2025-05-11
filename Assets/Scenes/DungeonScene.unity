@@ -3554,7 +3554,7 @@ Transform:
   m_GameObject: {fileID: 320848942}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 60, y: 24, z: -10}
+  m_LocalPosition: {x: 71, y: 35, z: -10}
   m_LocalScale: {x: 0.25, y: 0.25, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -3597,7 +3597,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 77449228752d6f34db0b74166d4c9a85, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Weight: 150
+  Weight: 175
   Speed: 10
 --- !u!212 &320848949
 SpriteRenderer:
@@ -4153,6 +4153,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 320848945}
     m_Modifications:
+    - target: {fileID: 5661201587867151366, guid: dfd5c60d538ea2a42be5202774eeb17e, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 5661201587867151366, guid: dfd5c60d538ea2a42be5202774eeb17e, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0.5656891
@@ -6466,7 +6470,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &591581270
 Transform:
   m_ObjectHideFlags: 0
@@ -16640,7 +16644,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f2d54773ac054444db8271da6f067ace, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  SwordWeight: 100
+  SwordWeight: 50
   swingSpeed: 25
   startingAngle: 45
   DebugGO: {fileID: 591581269}
@@ -16652,7 +16656,10 @@ MonoBehaviour:
   - {fileID: 873511009}
   - {fileID: 1292183181}
   - {fileID: 1665094439}
+  SWING_DURATION: 0.5
   WeaponDistFromPlayer: 0.2
+  CurrentState: 0
+  SwingAngleThingy: {x: 0, y: 0, z: 0}
 --- !u!1 &1746272604
 GameObject:
   m_ObjectHideFlags: 0

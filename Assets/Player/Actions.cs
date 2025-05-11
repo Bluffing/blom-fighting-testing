@@ -41,12 +41,13 @@ public class Actions : MonoBehaviour
     void Update()
     {
         MovementUpdate();
+        ActionUpdate();
 
         if (map is not null)
             ClickUpdate();
     }
 
-    #region Movement
+    #region Updates
 
     void MovementUpdate()
     {
@@ -62,31 +63,6 @@ public class Actions : MonoBehaviour
         }
 
         // var move = Vector3.zero;
-
-        // if (debugMovement)
-        // {
-        //     // stuttered
-        //     if (Input.GetKeyDown(KeyCode.W))
-        //         move += new Vector3(0, 1, 0);
-        //     if (Input.GetKeyDown(KeyCode.S))
-        //         move += new Vector3(0, -1, 0);
-        //     if (Input.GetKeyDown(KeyCode.D))
-        //         move += new Vector3(1, 0, 0);
-        //     if (Input.GetKeyDown(KeyCode.A))
-        //         move += new Vector3(-1, 0, 0);
-        // }
-        // else
-        // {
-        //     if (Input.GetKey(KeyCode.W))
-        //         move += new Vector3(0, 1, 0);
-        //     if (Input.GetKey(KeyCode.S))
-        //         move += new Vector3(0, -1, 0);
-        //     if (Input.GetKey(KeyCode.D))
-        //         move += new Vector3(1, 0, 0);
-        //     if (Input.GetKey(KeyCode.A))
-        //         move += new Vector3(-1, 0, 0);
-        // }
-
         // if (move != Vector3.zero)
         // {
         //     debugAxis.rotation = Quaternion.Euler(0, 0, Mathf.Atan2(move.y, move.x) * Mathf.Rad2Deg - 90);
@@ -95,6 +71,19 @@ public class Actions : MonoBehaviour
         // }
     }
 
+    void ActionUpdate()
+    {
+        switch (currentWeapon)
+        {
+            case WeaponType.None:
+                break;
+            case WeaponType.Greatsword:
+                WeaponActions.ActionUpdate(debugMovement);
+                break;
+            default:
+                break;
+        }
+    }
 
     #endregion
 

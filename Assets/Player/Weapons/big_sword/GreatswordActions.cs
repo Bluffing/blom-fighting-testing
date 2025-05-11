@@ -1,6 +1,14 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
+
+public enum GreatswordActionsState
+{
+    Idle,
+    Swinging,
+}
 
 public class GreatswordActions : MonoBehaviour, IWeaponActions
 {
@@ -30,11 +38,40 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
 
     #endregion GO
 
+    #region Swing
+
+    public float SWING_DURATION = 1f;
+    float swingStartingAngle = 0f;
+    Vector3 swingStartVector = Vector3.zero;
+    Vector3 swingEndVector = Vector3.zero;
+    float swingAngle = 0f;
+    float swingTimer = 0f;
+
+    #endregion Swing
+
     #region Properties
 
     public float WeaponDistFromPlayer = 0.5f;
     private Vector3 lastPos;
     private Vector3 moveVelo;
+    private int CurrentSwordPos = 0;
+
+    public Dictionary<KeyCode, int> KeyPressToAngle = new Dictionary<KeyCode, int>()
+    {
+        { KeyCode.U, 30 },
+        { KeyCode.H, 90 },
+        { KeyCode.N, 150 },
+        { KeyCode.M, 210 },
+        { KeyCode.L, 270 },
+        { KeyCode.I, 330 },
+
+        // { new KeyCode[] { KeyCode.U, KeyCode.I }, 0 },
+        // { new KeyCode[] { KeyCode.I, KeyCode.K }, 0 },
+    };
+
+    public GreatswordActionsState CurrentState = GreatswordActionsState.Idle;
+
+    public Vector3 SwingAngleThingy;
 
     #endregion Properties
 
@@ -102,42 +139,81 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
     {
         var move = Vector3.zero;
 
-        if (debugMovement)
+        switch (CurrentState)
         {
-            if (Input.GetKeyDown(KeyCode.W))
-                move += new Vector3(0, 1, 0);
-            if (Input.GetKeyDown(KeyCode.S))
-                move += new Vector3(0, -1, 0);
-            if (Input.GetKeyDown(KeyCode.D))
-                move += new Vector3(1, 0, 0);
-            if (Input.GetKeyDown(KeyCode.A))
-                move += new Vector3(-1, 0, 0);
+            case GreatswordActionsState.Idle:
+                {
+                    if (debugMovement)
+                    {
+                        if (Input.GetKeyDown(KeyCode.W))
+                            move += new Vector3(0, 1, 0);
+                        if (Input.GetKeyDown(KeyCode.S))
+                            move += new Vector3(0, -1, 0);
+                        if (Input.GetKeyDown(KeyCode.D))
+                            move += new Vector3(1, 0, 0);
+                        if (Input.GetKeyDown(KeyCode.A))
+                            move += new Vector3(-1, 0, 0);
+                    }
+                    else
+                    {
+                        if (Input.GetKey(KeyCode.W))
+                            move += new Vector3(0, 1, 0);
+                        if (Input.GetKey(KeyCode.S))
+                            move += new Vector3(0, -1, 0);
+                        if (Input.GetKey(KeyCode.D))
+                            move += new Vector3(1, 0, 0);
+                        if (Input.GetKey(KeyCode.A))
+                            move += new Vector3(-1, 0, 0);
+                    }
+
+                    var prevPos = Parent.position;
+                    if (move != Vector3.zero)
+                    {
+                        Parent.position += playerInfo.Speed * Time.deltaTime * move.normalized;
+
+                        playerActions.debugAxis.rotation = Quaternion.Euler(0, 0, Mathf.Atan2(move.y, move.x) * Mathf.Rad2Deg - 90);
+                        playerActions.arrow.rotation = Quaternion.Euler(0, 0, Mathf.Atan2(move.y, move.x) * Mathf.Rad2Deg - 90);
+
+                        UpdateGreatswordV3();
+                        moveVelo = Parent.position - prevPos;
+
+                        UpdateAxis();
+                    }
+                }
+                break;
+            default:
+                break;
         }
-        else
+    }
+
+    public void ActionUpdate(bool debugMovement = false)
+    {
+        switch (CurrentState)
         {
-            if (Input.GetKey(KeyCode.W))
-                move += new Vector3(0, 1, 0);
-            if (Input.GetKey(KeyCode.S))
-                move += new Vector3(0, -1, 0);
-            if (Input.GetKey(KeyCode.D))
-                move += new Vector3(1, 0, 0);
-            if (Input.GetKey(KeyCode.A))
-                move += new Vector3(-1, 0, 0);
+            case GreatswordActionsState.Idle:
+                {
+                    if (Input.GetKeyDown(KeyCode.U))
+                        SwingSword(KeyPressToAngle[KeyCode.U]);
+                    else if (Input.GetKeyDown(KeyCode.H))
+                        SwingSword(KeyPressToAngle[KeyCode.H]);
+                    else if (Input.GetKeyDown(KeyCode.N))
+                        SwingSword(KeyPressToAngle[KeyCode.N]);
+                    else if (Input.GetKeyDown(KeyCode.M))
+                        SwingSword(KeyPressToAngle[KeyCode.M]);
+                    else if (Input.GetKeyDown(KeyCode.L))
+                        SwingSword(KeyPressToAngle[KeyCode.L]);
+                    else if (Input.GetKeyDown(KeyCode.I))
+                        SwingSword(KeyPressToAngle[KeyCode.I]);
+                    break;
+                }
+            case GreatswordActionsState.Swinging:
+                SwingSwordUpdate();
+                break;
         }
 
-        var prevPos = Parent.position;
-        if (move != Vector3.zero)
-        {
-            Parent.position += playerInfo.Speed * Time.deltaTime * move.normalized;
+        // todo : buffer
 
-            playerActions.debugAxis.rotation = Quaternion.Euler(0, 0, Mathf.Atan2(move.y, move.x) * Mathf.Rad2Deg - 90);
-            playerActions.arrow.rotation = Quaternion.Euler(0, 0, Mathf.Atan2(move.y, move.x) * Mathf.Rad2Deg - 90);
-
-            UpdateGreatswordV3();
-            moveVelo = Parent.position - prevPos;
-
-            UpdateAxis();
-        }
+        if (debugMovement) { }
     }
 
     #endregion IWeaponActions
@@ -151,7 +227,6 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
                     new Vector3(WeaponDistFromPlayer * Mathf.Cos(DegToRad(transform.rotation.eulerAngles.z + 90)),
                                 WeaponDistFromPlayer * Mathf.Sin(DegToRad(transform.rotation.eulerAngles.z + 90)));
     }
-
     private void UpdateGreatswordV3Drag(Vector3 move, Vector3 prevSwordPointPos)
     {
         var signedAngleNewPosSwordPoint = Vector2.SignedAngle(Vector2.up, prevSwordPointPos - Parent.position);
@@ -201,8 +276,8 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
 
         // draw drag line
         var newSwordPointPos = transform.position +
-                                new Vector3(0.5f * Mathf.Cos(DegToRad(transform.rotation.eulerAngles.z + 90)),
-                                            0.5f * Mathf.Sin(DegToRad(transform.rotation.eulerAngles.z + 90)));
+                                new Vector3(swordLength * Mathf.Cos(DegToRad(transform.rotation.eulerAngles.z + 90)),
+                                            swordLength * Mathf.Sin(DegToRad(transform.rotation.eulerAngles.z + 90)));
         Debug.DrawLine(prevSwordPointPos, newSwordPointPos, Color.red, 1f);
         lastPos = Parent.position;
     }
@@ -213,19 +288,103 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
 
     void UpdateAxis()
     {
-        // currently not usefull but if end point stops being aligned with handle it will be usefull 
-        // var newSwordPointPos = transform.position +
-        //                         new Vector3(0.5f * Mathf.Cos(DegToRad(transform.rotation.eulerAngles.z + 90)),
-        //                                     0.5f * Mathf.Sin(DegToRad(transform.rotation.eulerAngles.z + 90)));
-
         for (int i = 0; i < DebugAxisList.Length; i++)
             DebugAxisList[i].UnFocus();
 
-        Debug.Log($"bleak : {Vector2.SignedAngle(Vector2.right, moveVelo)}");
+        var newSwordPointPos = transform.position +
+                                new Vector3(swordLength * Mathf.Cos(DegToRad(transform.rotation.eulerAngles.z + 90)),
+                                            swordLength * Mathf.Sin(DegToRad(transform.rotation.eulerAngles.z + 90)));
+        var swordAngle = Vector2.SignedAngle(moveVelo, newSwordPointPos - Parent.position) + 360;
+        CurrentSwordPos = (int)(swordAngle / 60) % 6;
+        DebugAxisList[CurrentSwordPos].Focus();
+    }
 
-        // int swordAxis = (((int)(Vector2.SignedAngle(Vector2.right, moveVelo) - transform.rotation.eulerAngles.z) / 60) + 6) % 6;
-        // Debug.Log($"swordAxis : {swordAxis}");
-        // DebugAxisList[swordAxis].Focus();
+    void SwingSword(int angle)
+    {
+        CurrentState = GreatswordActionsState.Swinging;
+
+        swingAngle = Vector2.SignedAngle(Vector2.up, moveVelo) + 360 + angle;
+        swingTimer = 0f;
+
+        swingStartingAngle = transform.rotation.eulerAngles.z;
+        // swingStartVector = transform.position;
+        // swingEndVector = Parent.position +
+        //                  new Vector3(WeaponDistFromPlayer * Mathf.Cos(DegToRad(swingAngle + 90)),
+        //                              WeaponDistFromPlayer * Mathf.Sin(DegToRad(swingAngle + 90)));
+
+        swingStartVector = transform.position +
+                                new Vector3(swordLength * Mathf.Cos(DegToRad(transform.rotation.eulerAngles.z + 90)),
+                                            swordLength * Mathf.Sin(DegToRad(transform.rotation.eulerAngles.z + 90)));
+        swingEndVector = Parent.position +
+                            new Vector3((swordLength + WeaponDistFromPlayer) * Mathf.Cos(DegToRad(swingAngle + 90)),
+                                        (swordLength + WeaponDistFromPlayer) * Mathf.Sin(DegToRad(swingAngle + 90)));
+
+        gizmosPoints[1] = swingStartVector;
+        gizmosPoints[2] = swingEndVector;
+    }
+
+    // code from aldonaletto : https://discussions.unity.com/t/rotate-a-vector-around-a-certain-point/81225/2
+    Vector3 RotatePointAroundPivot(Vector3 point, Vector3 pivot, Vector3 angles)
+    {
+        var dir = point - pivot; // get point direction relative to pivot
+        dir = Quaternion.Euler(angles) * dir; // rotate it
+        point = dir + pivot; // calculate rotated point
+        return point;
+    }
+
+    void SwingSwordUpdate()
+    {
+        swingTimer += Time.deltaTime;
+
+        var swingProgress = swingTimer / SWING_DURATION;
+        if (swingProgress > 1f)
+        {
+            swingProgress = 1f;
+            CurrentState = GreatswordActionsState.Idle;
+        }
+        swingProgress *= swingProgress * swingProgress; // y = x^3
+
+        // Debug.Log($"swing timer : {swingTimer}/{SWING_DURATION} ({swingTimer / SWING_DURATION * 100}%)");
+
+        // var currentSwordAngle = transform.rotation.eulerAngles.z;
+        // var newSwordAngle = Mathf.LerpAngle(swingStartingAngle, swingAngle, swingProgress);
+        // var newSwordAngleDeg = Mathf.Lerp(0, 180, swingProgress);
+        // var newSwordAngleRad = Mathf.Lerp(0, Mathf.PI, swingProgress);
+
+        var p1 = swingStartVector;            // const
+        var p2 = swingEndVector;              // const
+        var r = Vector2.Distance(p1, p2) / 2; // const
+        var midpoint = (p1 + p2) / 2;         // const
+
+        var newPoint = Vector3.Lerp(p1, p2, swingProgress);
+        var x = Vector2.Distance(newPoint, midpoint);
+        var y = Mathf.Sqrt(r * r - x * x);
+
+        newPoint.z = transform.position.z - y;
+        gizmosPoints[0] = newPoint;
+
+        // transform.rotation = Quaternion.Euler(Parent.position - newPoint);
+        // Debug.Log($"rot : {rot.eulerAngles}");
+        // transform.rotation = Quaternion.Euler(new Vector3(0, 0, zAngle));
+
+        // transform.rotation = Quaternion.Euler(idk);
+        // transform.position = newPoint;
+
+        // var rot = Quaternion.FromToRotation(Vector3.up, newPoint - Parent.position);
+        var newPos = Parent.position + (newPoint - Parent.position).normalized * WeaponDistFromPlayer;
+        var rot = Quaternion.AngleAxis(Vector3.Angle(Vector3.up, newPoint - Parent.position), Vector3.Cross(Vector3.up, newPoint - Parent.position));
+        // transform.rotation = rot;
+        transform.SetPositionAndRotation(newPos, rot);
+
+        // UpdateSwordPos(newSwordAngle);
+        UpdateAxis();
+    }
+
+
+    IEnumerator goBackToIdleIn(float time)
+    {
+        yield return new WaitForSeconds(time);// Wait for one second
+        CurrentState = GreatswordActionsState.Idle;
     }
 
     #endregion MoveAxis
