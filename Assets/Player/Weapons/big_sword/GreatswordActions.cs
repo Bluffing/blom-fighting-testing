@@ -49,6 +49,14 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
 
     #endregion Swing
 
+    #region Attack
+
+    public Transform EnemiesParent;
+    public Collider2D MaxHitCollider;
+    public Collider2D MinHitCollider;
+
+    #endregion Attack
+
     #region Properties
 
     public float WeaponDistFromPlayer = 0.5f;
@@ -222,10 +230,11 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
 
     private void UpdateSwordPos(float angle)
     {
-        transform.rotation = Quaternion.Euler(new Vector3(0, 0, angle));
-        transform.position = Parent.position +
+        var rot = Quaternion.Euler(new Vector3(0, 0, angle));
+        var pos = Parent.position +
                     new Vector3(WeaponDistFromPlayer * Mathf.Cos(DegToRad(transform.rotation.eulerAngles.z + 90)),
                                 WeaponDistFromPlayer * Mathf.Sin(DegToRad(transform.rotation.eulerAngles.z + 90)));
+        transform.SetPositionAndRotation(pos, rot);
     }
     private void UpdateGreatswordV3Drag(Vector3 move, Vector3 prevSwordPointPos)
     {
@@ -307,11 +316,6 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
         swingTimer = 0f;
 
         swingStartingAngle = transform.rotation.eulerAngles.z;
-        // swingStartVector = transform.position;
-        // swingEndVector = Parent.position +
-        //                  new Vector3(WeaponDistFromPlayer * Mathf.Cos(DegToRad(swingAngle + 90)),
-        //                              WeaponDistFromPlayer * Mathf.Sin(DegToRad(swingAngle + 90)));
-
         swingStartVector = transform.position +
                                 new Vector3(swordLength * Mathf.Cos(DegToRad(transform.rotation.eulerAngles.z + 90)),
                                             swordLength * Mathf.Sin(DegToRad(transform.rotation.eulerAngles.z + 90)));
@@ -376,8 +380,37 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
         // transform.rotation = rot;
         transform.SetPositionAndRotation(newPos, rot);
 
+        if (swingProgress == 1f)
+            EndSwordSwing();
+
         // UpdateSwordPos(newSwordAngle);
         UpdateAxis();
+    }
+    void EndSwordSwing()
+    {
+        UpdateSwordPos(swingAngle);
+
+        foreach (Transform enemy in EnemiesParent)
+        {
+            if (!enemy.TryGetComponent<Collider2D>(out var enemyCollider))
+            {
+                Debug.LogError($"enemy {enemy.name} has no collider");
+                continue;
+            }
+
+            if (enemyCollider.IsTouching(MaxHitCollider))
+            {
+                Debug.Log($"max hit {enemy.name}");
+            }
+            else if (enemyCollider.IsTouching(MinHitCollider))
+            {
+                Debug.Log($"min hit {enemy.name}");
+            }
+            else
+            {
+                Debug.Log($"no hit {enemy.name}");
+            }
+        }
     }
 
 

@@ -6,4 +6,5 @@ public class PlayerInfo : MonoBehaviour
 {
     public float Weight;
     public float Speed;
+    public float HP;
 }
