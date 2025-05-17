@@ -111,8 +111,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8308164484233441047}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: -0, z: 0.9659259, w: -0.25881898}
-  m_LocalPosition: {x: 0.5656891, y: -0.5656891, z: 0}
+  m_LocalRotation: {x: -0, y: -0, z: 0.9659259, w: -0.25881907}
+  m_LocalPosition: {x: 0.39999962, y: -0.69282055, z: -0.10000038}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -134,6 +134,7 @@ MonoBehaviour:
   SwordWeight: 50
   swingSpeed: 25
   startingAngle: 210
+  SWORD_DAMAGE: 200
   DebugGO: {fileID: 0}
   DebugAxisPrefab: {fileID: 2352882356727622939, guid: e2221bcff33bcde4eb33096e795399ad, type: 3}
   DebugAxisList:
@@ -144,9 +145,8 @@ MonoBehaviour:
   - {fileID: 0}
   - {fileID: 0}
   SWING_DURATION: 0.5
-  EnemiesParent: {fileID: 0}
-  MaxHitCollider: {fileID: 411509935603932628}
-  MinHitCollider: {fileID: 8185915238626577615}
+  MaxHitCollider: {fileID: 8185915238626577615}
+  MinHitCollider: {fileID: 411509935603932628}
   WeaponDistFromPlayer: 0.2
   CurrentState: 0
   SwingAngleThingy: {x: 0, y: 0, z: 0}
@@ -164,11 +164,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Center: {x: 0, y: 0.7}
   Size: {x: 0.5, y: 0.6}
-  Corners:
-  - {x: 71.07491, y: 35.17377}
-  - {x: 71.50793, y: 35.42377}
-  - {x: 71.207924, y: 35.943386}
-  - {x: 70.77491, y: 35.693386}
 --- !u!114 &8185915238626577615
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -183,8 +178,3 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Center: {x: 0, y: 1.5}
   Size: {x: 0.5, y: 1}
-  Corners:
-  - {x: 71.17491, y: 35.800564}
-  - {x: 71.607925, y: 36.050564}
-  - {x: 71.107925, y: 36.91659}
-  - {x: 70.67491, y: 36.66659}

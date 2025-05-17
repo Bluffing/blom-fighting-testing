@@ -1,8 +1,14 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
+
+// todo
+// - [ ] sword drag
+// - [ ] shoulder sword
+// - [ ] block
+// - [ ] 2 inputs
 
 public enum GreatswordActionsState
 {
@@ -18,8 +24,8 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
     public float SwordWeight = 100f;
     public float swingSpeed = 1f;
 
-    [Range(0, 360)]
     public int startingAngle = 0;
+    public int SWORD_DAMAGE = 200;
 
     #endregion Info
 
@@ -36,6 +42,11 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
     private Actions playerActions;
     private Transform Parent => transform.parent;
 
+    // helper
+    private Transform HelperGO;
+    private PopDamage popDamage;
+    private DPS dpsTracker;
+
     #endregion GO
 
     #region Swing
@@ -51,7 +62,7 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
 
     #region Attack
 
-    public Transform EnemiesParent;
+    private Transform EnemiesParent;
     public CustomRectangleCollider MaxHitCollider;
     public CustomRectangleCollider MinHitCollider;
 
@@ -89,6 +100,18 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
     {
         playerInfo = Parent.GetComponent<PlayerInfo>();
         playerActions = Parent.GetComponent<Actions>();
+
+        HelperGO = GameObject.FindGameObjectWithTag("Helper").transform;
+        popDamage = HelperGO.GetComponent<PopDamage>();
+
+        dpsTracker = GameObject
+                        .FindGameObjectsWithTag("HUD")
+                        .FirstOrDefault(go => go.GetComponent<DPS>() != null)
+                        .GetComponent<DPS>();
+
+        EnemiesParent = GameObject
+                        .FindGameObjectWithTag("EnemiesParent")
+                        .transform;
 
         lastPos = Parent.position;
         Init();
@@ -131,7 +154,6 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
     }
     public void CleanChildren(Transform t)
     {
-        // todo : remove
         if (!Application.isPlaying)
             CleanChildrenEditor(t);
         else
@@ -181,7 +203,7 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
                         playerActions.debugAxis.rotation = Quaternion.Euler(0, 0, Mathf.Atan2(move.y, move.x) * Mathf.Rad2Deg - 90);
                         playerActions.arrow.rotation = Quaternion.Euler(0, 0, Mathf.Atan2(move.y, move.x) * Mathf.Rad2Deg - 90);
 
-                        UpdateGreatswordV3();
+                        UpdateGreatsword();
                         moveVelo = Parent.position - prevPos;
 
                         UpdateAxis();
@@ -231,12 +253,12 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
     {
         var rot = Quaternion.Euler(new Vector3(0, 0, angle));
         var pos = Parent.position +
-                    new Vector3(WeaponDistFromPlayer * Mathf.Cos(DegToRad(transform.rotation.eulerAngles.z + 90)),
-                                WeaponDistFromPlayer * Mathf.Sin(DegToRad(transform.rotation.eulerAngles.z + 90)),
-                                -1);
+                    new Vector3(WeaponDistFromPlayer * Mathf.Cos(DegToRad(angle + 90)),
+                                WeaponDistFromPlayer * Mathf.Sin(DegToRad(angle + 90)),
+                                -0.1f);
         transform.SetPositionAndRotation(pos, rot);
     }
-    private void UpdateGreatswordV3Drag(Vector3 move, Vector3 prevSwordPointPos)
+    private void UpdateGreatswordDrag(Vector3 move, Vector3 prevSwordPointPos)
     {
         var signedAngleNewPosSwordPoint = Vector2.SignedAngle(Vector2.up, prevSwordPointPos - Parent.position);
 
@@ -248,7 +270,7 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
 
         // todo : drag
     }
-    private void UpdateGreatswordV3Towards(Vector3 move, Vector3 prevSwordPointPos)
+    private void UpdateGreatswordTowards(Vector3 move, Vector3 prevSwordPointPos)
     {
         var prevPos = Parent.position - move;
 
@@ -267,7 +289,7 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
 
         // todo : drag
     }
-    private void UpdateGreatswordV3()
+    private void UpdateGreatsword()
     {
         if (Parent.position == lastPos) return;
 
@@ -279,9 +301,9 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
         // drag sword or go towards sword
         var signedAngle = Vector2.SignedAngle(Parent.position - prevSwordPointPos, move);
         if (signedAngle < 90 && signedAngle > -90)
-            UpdateGreatswordV3Drag(move, prevSwordPointPos);
+            UpdateGreatswordDrag(move, prevSwordPointPos);
         else
-            UpdateGreatswordV3Towards(move, prevSwordPointPos);
+            UpdateGreatswordTowards(move, prevSwordPointPos);
 
         // draw drag line
         var newSwordPointPos = transform.position +
@@ -293,7 +315,7 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
 
     #endregion MoveGreatsword
 
-    #region MoveAxis
+    #region Swing
 
     void UpdateAxis()
     {
@@ -313,7 +335,6 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
         CurrentState = GreatswordActionsState.Swinging;
 
         swingAngle = Vector2.SignedAngle(Vector2.up, moveVelo) + 360 + angle;
-        swingTimer = 0f;
 
         swingStartingAngle = transform.rotation.eulerAngles.z;
         swingStartVector = transform.position +
@@ -323,37 +344,25 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
                             new Vector3((swordLength + WeaponDistFromPlayer) * Mathf.Cos(DegToRad(swingAngle + 90)),
                                         (swordLength + WeaponDistFromPlayer) * Mathf.Sin(DegToRad(swingAngle + 90)));
 
+        var maxDist = 2 * (swordLength + WeaponDistFromPlayer);
+        var ratio = Mathf.Clamp((swingEndVector - swingStartVector).magnitude / maxDist, 0, 1);
+        ratio = Mathf.Clamp(ratio, 0, 1);
+        swingTimer = SWING_DURATION * ratio;
+
         gizmosPoints[1] = swingStartVector;
         gizmosPoints[2] = swingEndVector;
     }
-
-    // code from aldonaletto : https://discussions.unity.com/t/rotate-a-vector-around-a-certain-point/81225/2
-    Vector3 RotatePointAroundPivot(Vector3 point, Vector3 pivot, Vector3 angles)
-    {
-        var dir = point - pivot; // get point direction relative to pivot
-        dir = Quaternion.Euler(angles) * dir; // rotate it
-        point = dir + pivot; // calculate rotated point
-        return point;
-    }
-
     void SwingSwordUpdate()
     {
-        swingTimer += Time.deltaTime;
+        swingTimer -= Time.deltaTime;
 
-        var swingProgress = swingTimer / SWING_DURATION;
-        if (swingProgress > 1f)
+        var swingProgress = 1 - swingTimer / SWING_DURATION;
+        if (swingTimer < 0)
         {
             swingProgress = 1f;
             CurrentState = GreatswordActionsState.Idle;
         }
         swingProgress *= swingProgress * swingProgress; // y = x^3
-
-        // Debug.Log($"swing timer : {swingTimer}/{SWING_DURATION} ({swingTimer / SWING_DURATION * 100}%)");
-
-        // var currentSwordAngle = transform.rotation.eulerAngles.z;
-        // var newSwordAngle = Mathf.LerpAngle(swingStartingAngle, swingAngle, swingProgress);
-        // var newSwordAngleDeg = Mathf.Lerp(0, 180, swingProgress);
-        // var newSwordAngleRad = Mathf.Lerp(0, Mathf.PI, swingProgress);
 
         var p1 = swingStartVector;            // const
         var p2 = swingEndVector;              // const
@@ -367,17 +376,8 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
         newPoint.z = transform.position.z - y;
         gizmosPoints[0] = newPoint;
 
-        // transform.rotation = Quaternion.Euler(Parent.position - newPoint);
-        // Debug.Log($"rot : {rot.eulerAngles}");
-        // transform.rotation = Quaternion.Euler(new Vector3(0, 0, zAngle));
-
-        // transform.rotation = Quaternion.Euler(idk);
-        // transform.position = newPoint;
-
-        // var rot = Quaternion.FromToRotation(Vector3.up, newPoint - Parent.position);
         var newPos = Parent.position + (newPoint - Parent.position).normalized * WeaponDistFromPlayer;
         var rot = Quaternion.AngleAxis(Vector3.Angle(Vector3.up, newPoint - Parent.position), Vector3.Cross(Vector3.up, newPoint - Parent.position));
-        // transform.rotation = rot;
         transform.SetPositionAndRotation(newPos, rot);
 
         if (swingProgress == 1f)
@@ -390,6 +390,11 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
     {
         UpdateSwordPos(swingAngle);
 
+        var maxDist = 2 * (swordLength + WeaponDistFromPlayer);
+        var dmg = Mathf.Clamp((swingEndVector - swingStartVector).magnitude / maxDist, 0, 1);
+        dmg *= dmg;
+        dmg *= SWORD_DAMAGE;
+
         foreach (Transform enemy in EnemiesParent)
         {
             if (!enemy.TryGetComponent<CustomRectangleCollider>(out var enemyCollider))
@@ -400,15 +405,13 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
 
             if (enemyCollider.IsTouching(MaxHitCollider))
             {
-                Debug.Log($"max hit {enemy.name}");
+                popDamage.ShowDamage(enemy, dmg.ToString("0"), Color.red);
+                dpsTracker.AddDmg(dmg);
             }
             else if (enemyCollider.IsTouching(MinHitCollider))
             {
-                Debug.Log($"min hit {enemy.name}");
-            }
-            else
-            {
-                Debug.Log($"no hit {enemy.name}");
+                popDamage.ShowDamage(enemy, (dmg * 0.6).ToString("0"), Color.red);
+                dpsTracker.AddDmg(dmg);
             }
         }
     }
@@ -420,7 +423,7 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
         CurrentState = GreatswordActionsState.Idle;
     }
 
-    #endregion MoveAxis
+    #endregion Swing
 
     #region Debug
 

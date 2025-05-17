@@ -8,6 +8,9 @@ public class PopDamage : MonoBehaviour
     public GameObject popPrefab;
     public List<Vector3> path;
 
+    public Transform DEBUG_TARGET;
+
+    // Prolly better to make this a helper function instead
     public void ShowDamage(Transform obj, string txt, Color? textcolor = null)
     {
         var go = Instantiate(popPrefab, obj);
@@ -33,8 +36,15 @@ public class PopDamageEditor : Editor
     {
         DrawDefaultInspector();
         PopDamage script = (PopDamage)target;
+
         if (GUILayout.Button("Show Damage"))
         {
+            if (script.DEBUG_TARGET != null)
+            {
+                script.ShowDamage(script.DEBUG_TARGET, "100");
+                return;
+            }
+
             var p = GameObject.FindGameObjectWithTag("Player");
             if (p != null)
                 script.ShowDamage(p.transform, "100");

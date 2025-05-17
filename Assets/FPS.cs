@@ -1,13 +1,17 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class FPS : MonoBehaviour
 {
-    public Text text;
+    private Text text;
     public bool showFPS = true;
     public bool showFPSWarning = true;
+
+    public void Start()
+    {
+        if (!TryGetComponent(out text))
+            Debug.LogError("Text component not found");
+    }
 
     // Update is called once per frame
     void Update()
