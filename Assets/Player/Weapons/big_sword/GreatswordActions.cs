@@ -34,7 +34,7 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
     // player
     private PlayerInfo playerInfo;
     private Actions playerActions;
-    private Transform Parent;
+    private Transform Parent => transform.parent;
 
     #endregion GO
 
@@ -52,8 +52,8 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
     #region Attack
 
     public Transform EnemiesParent;
-    public Collider2D MaxHitCollider;
-    public Collider2D MinHitCollider;
+    public CustomRectangleCollider MaxHitCollider;
+    public CustomRectangleCollider MinHitCollider;
 
     #endregion Attack
 
@@ -87,7 +87,6 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
 
     void Start()
     {
-        Parent = transform.parent;
         playerInfo = Parent.GetComponent<PlayerInfo>();
         playerActions = Parent.GetComponent<Actions>();
 
@@ -118,8 +117,8 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
 
     #region Helpers
 
-    float DegToRad(float d) => d * 0.0174533f;
-    float RadToDeg(float r) => r * 57.29578f;
+    float DegToRad(float d) => d * Mathf.Deg2Rad;
+    float RadToDeg(float r) => r * Mathf.Rad2Deg;
     void CleanChildrenEditor(Transform t)
     {
         while (t.childCount > 0)
@@ -233,7 +232,8 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
         var rot = Quaternion.Euler(new Vector3(0, 0, angle));
         var pos = Parent.position +
                     new Vector3(WeaponDistFromPlayer * Mathf.Cos(DegToRad(transform.rotation.eulerAngles.z + 90)),
-                                WeaponDistFromPlayer * Mathf.Sin(DegToRad(transform.rotation.eulerAngles.z + 90)));
+                                WeaponDistFromPlayer * Mathf.Sin(DegToRad(transform.rotation.eulerAngles.z + 90)),
+                                -1);
         transform.SetPositionAndRotation(pos, rot);
     }
     private void UpdateGreatswordV3Drag(Vector3 move, Vector3 prevSwordPointPos)
@@ -392,7 +392,7 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
 
         foreach (Transform enemy in EnemiesParent)
         {
-            if (!enemy.TryGetComponent<Collider2D>(out var enemyCollider))
+            if (!enemy.TryGetComponent<CustomRectangleCollider>(out var enemyCollider))
             {
                 Debug.LogError($"enemy {enemy.name} has no collider");
                 continue;

@@ -23,7 +23,11 @@ public class EnemyTest : MonoBehaviour
     public Sprite explosionSpriteStart;
     public Sprite explosionSpriteEnd;
 
-    public float explosionTime = 3f;
+    public float ExplosionDistance;
+    public float ExplosionDelayTime = 2f;
+    public float ExplosionEndTime = 1f;
+
+    private float explosionTimer;
     private float switchColorTime = 0;
 
     // Start is called before the first frame update
@@ -67,16 +71,17 @@ public class EnemyTest : MonoBehaviour
     void Attack()
     {
         transform.position = Vector2.MoveTowards(transform.position, Player.transform.position, Speed * Time.deltaTime);
-        if (Vector2.Distance(transform.position, Player.transform.position) < 0.6f)
+        if (Vector2.Distance(transform.position, Player.transform.position) < ExplosionDistance)
             State = EnemyTestState.StartExploding;
+        explosionTimer = ExplosionDelayTime;
     }
     void StartExploding()
     {
-        explosionTime -= Time.deltaTime;
-        if (explosionTime < 0)
+        explosionTimer -= Time.deltaTime;
+        if (explosionTimer < 0)
         {
             State = EnemyTestState.Exploding;
-            explosionTime = 1f;
+            explosionTimer = ExplosionEndTime;
             switchColorTime = 0;
 
             SpriteRenderer.color = Color.white;
@@ -88,14 +93,25 @@ public class EnemyTest : MonoBehaviour
         if (switchColorTime < 0)
         {
             SpriteRenderer.color = SpriteRenderer.color == Color.white ? Color.red : Color.white;
-            switchColorTime = explosionTime / 5;
+            switchColorTime = explosionTimer / 5;
         }
     }
     void Explode()
     {
-        explosionTime -= Time.deltaTime;
+        if (explosionTimer == ExplosionEndTime)
+        {
+            var playerCollider = Player.GetComponent<CustomRectangleCollider>();
+            var selfCollider = GetComponent<CustomRectangleCollider>();
+            if (playerCollider.IsTouching(selfCollider))
+            {
+                var popDamage = GameObject.FindGameObjectWithTag("Helper").GetComponent<PopDamage>();
+                popDamage.ShowDamage(Player.transform, "100", Color.red);
+            }
+        }
 
-        if (explosionTime > 0.6f)
+        explosionTimer -= Time.deltaTime;
+
+        if (explosionTimer > 0.6f)
         {
             switchColorTime -= Time.deltaTime;
             if (switchColorTime < 0)
@@ -104,7 +120,7 @@ public class EnemyTest : MonoBehaviour
                 switchColorTime = 0.07f;
             }
         }
-        else if (explosionTime > 0)
+        else if (explosionTimer > 0)
         {
             SpriteRenderer.color = Color.white;
             SpriteRenderer.sprite = explosionSpriteEnd;
@@ -114,12 +130,6 @@ public class EnemyTest : MonoBehaviour
     }
     void Kill()
     {
-        var playerCollider = Player.GetComponent<Collider2D>();
-        if (playerCollider.IsTouching(GetComponent<Collider2D>()))
-        {
-            var popDamage = GameObject.FindGameObjectWithTag("Helper").GetComponent<PopDamage>();
-            popDamage.ShowDamage(Player.transform, "100", Color.red);
-        }
 
         Destroy(gameObject);
     }

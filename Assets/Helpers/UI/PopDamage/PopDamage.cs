@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
@@ -13,7 +14,7 @@ public class PopDamage : MonoBehaviour
         var textMesh = go.GetComponent<TextMesh>();
         var MovePopDamage = go.GetComponent<MovePopDamage>();
 
-        MovePopDamage.path = path;
+        MovePopDamage.path = path.Select(p => Vector3.Scale(p, obj.transform.localScale)).ToList();
         MovePopDamage.shownLength = 0.3f;
         if (textcolor != null)
         {
