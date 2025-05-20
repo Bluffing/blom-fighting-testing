@@ -29,7 +29,6 @@ public class Actions : MonoBehaviour
 
     #endregion Throw Properties
 
-    // Start is called before the first frame update
     void Start()
     {
         if (weaponActions is not IWeaponActions)
@@ -37,13 +36,12 @@ public class Actions : MonoBehaviour
         WeaponActions = (IWeaponActions)weaponActions;
     }
 
-    // Update is called once per frame
     void Update()
     {
         MovementUpdate();
         ActionUpdate();
 
-        if (map is not null)
+        if (map != null)
             ClickUpdate();
     }
 
@@ -56,19 +54,12 @@ public class Actions : MonoBehaviour
             case WeaponType.None:
                 break;
             case WeaponType.Greatsword:
+            case WeaponType.MultiGun:
                 WeaponActions.MovementUpdate(debugMovement);
                 break;
             default:
                 break;
         }
-
-        // var move = Vector3.zero;
-        // if (move != Vector3.zero)
-        // {
-        //     debugAxis.rotation = Quaternion.Euler(0, 0, Mathf.Atan2(move.y, move.x) * Mathf.Rad2Deg - 90);
-        //     arrow.rotation = Quaternion.Euler(0, 0, Mathf.Atan2(move.y, move.x) * Mathf.Rad2Deg - 90);
-        //     transform.position += move.normalized * speed * Time.deltaTime;
-        // }
     }
 
     void ActionUpdate()
@@ -78,6 +69,7 @@ public class Actions : MonoBehaviour
             case WeaponType.None:
                 break;
             case WeaponType.Greatsword:
+            case WeaponType.MultiGun:
                 WeaponActions.ActionUpdate(debugMovement);
                 break;
             default:
@@ -165,4 +157,5 @@ public enum WeaponType
 {
     None = 0,
     Greatsword = 1,
+    MultiGun = 2,
 }

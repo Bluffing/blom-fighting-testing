@@ -11,14 +11,14 @@ public class PopDamage : MonoBehaviour
     public Transform DEBUG_TARGET;
 
     // Prolly better to make this a helper function instead
-    public void ShowDamage(Transform obj, string txt, Color? textcolor = null)
+    public void ShowDamage(Transform obj, string txt, Color? textcolor = null, float time = 0.3f)
     {
         var go = Instantiate(popPrefab, obj);
         var textMesh = go.GetComponent<TextMesh>();
         var MovePopDamage = go.GetComponent<MovePopDamage>();
 
         MovePopDamage.path = path.Select(p => Vector3.Scale(p, obj.transform.localScale)).ToList();
-        MovePopDamage.shownLength = 0.3f;
+        MovePopDamage.shownLength = time;
         if (textcolor != null)
         {
             textMesh.text = txt;

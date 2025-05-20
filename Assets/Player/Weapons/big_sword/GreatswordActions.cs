@@ -6,14 +6,21 @@ using UnityEngine;
 
 // todo
 // - [ ] sword drag
-// - [ ] shoulder sword
-// - [ ] block
+// - [ ] side stomp
+// - [ ] shoulder sword (K) / block? (M?)
 // - [ ] 2 inputs
+// - [ ] perfect next input timing bonus?
 
 public enum GreatswordActionsState
 {
     Idle,
+    Stomping,
     Swinging,
+}
+public enum GreatswordActionsMode
+{
+    Stomp,
+    Swing,
 }
 
 public class GreatswordActions : MonoBehaviour, IWeaponActions
@@ -22,7 +29,7 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
     #region Info
 
     public float SwordWeight = 100f;
-    public float swingSpeed = 1f;
+    public float stompSpeed = 1f;
 
     public int startingAngle = 0;
     public int SWORD_DAMAGE = 200;
@@ -44,21 +51,23 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
 
     // helper
     private Transform HelperGO;
-    private PopDamage popDamage;
     private DPS dpsTracker;
 
     #endregion GO
 
-    #region Swing
+    #region Stomp / Swing
 
+    public float STOMP_DURATION = 1f;
     public float SWING_DURATION = 1f;
-    float swingStartingAngle = 0f;
-    Vector3 swingStartVector = Vector3.zero;
-    Vector3 swingEndVector = Vector3.zero;
-    float swingAngle = 0f;
-    float swingTimer = 0f;
 
-    #endregion Swing
+    // float attackStartingAngle = 0f;
+    Vector3 attackStartVector = Vector3.zero;
+    Vector3 swingMidVector = Vector3.zero;
+    Vector3 attackEndVector = Vector3.zero;
+    float attackAngle = 0f;
+    float attackTimer = 0f;
+
+    #endregion Stomp / Swing
 
     #region Attack
 
@@ -80,7 +89,7 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
         { KeyCode.U, 30 },
         { KeyCode.H, 90 },
         { KeyCode.N, 150 },
-        { KeyCode.M, 210 },
+        { KeyCode.Comma, 210 },
         { KeyCode.L, 270 },
         { KeyCode.I, 330 },
 
@@ -89,8 +98,7 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
     };
 
     public GreatswordActionsState CurrentState = GreatswordActionsState.Idle;
-
-    public Vector3 SwingAngleThingy;
+    public GreatswordActionsMode CurrentMode = GreatswordActionsMode.Stomp;
 
     #endregion Properties
 
@@ -102,7 +110,6 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
         playerActions = Parent.GetComponent<Actions>();
 
         HelperGO = GameObject.FindGameObjectWithTag("Helper").transform;
-        popDamage = HelperGO.GetComponent<PopDamage>();
 
         dpsTracker = GameObject
                         .FindGameObjectsWithTag("HUD")
@@ -221,22 +228,43 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
         {
             case GreatswordActionsState.Idle:
                 {
+                    void Action(int angle)
+                    {
+                        switch (CurrentMode)
+                        {
+                            case GreatswordActionsMode.Stomp:
+                                StompSword(angle);
+                                break;
+                            case GreatswordActionsMode.Swing:
+                                SwingSword(angle);
+                                break;
+                        }
+                    }
+
+                    if (Input.GetKeyDown(KeyCode.J))
+                    {
+                        CurrentMode =
+                            CurrentMode == GreatswordActionsMode.Stomp ?
+                                GreatswordActionsMode.Swing :
+                                GreatswordActionsMode.Stomp;
+                    }
+
                     if (Input.GetKeyDown(KeyCode.U))
-                        SwingSword(KeyPressToAngle[KeyCode.U]);
+                        Action(KeyPressToAngle[KeyCode.U]);
                     else if (Input.GetKeyDown(KeyCode.H))
-                        SwingSword(KeyPressToAngle[KeyCode.H]);
+                        Action(KeyPressToAngle[KeyCode.H]);
                     else if (Input.GetKeyDown(KeyCode.N))
-                        SwingSword(KeyPressToAngle[KeyCode.N]);
-                    else if (Input.GetKeyDown(KeyCode.M))
-                        SwingSword(KeyPressToAngle[KeyCode.M]);
+                        Action(KeyPressToAngle[KeyCode.N]);
+                    else if (Input.GetKeyDown(KeyCode.Comma))
+                        Action(KeyPressToAngle[KeyCode.Comma]);
                     else if (Input.GetKeyDown(KeyCode.L))
-                        SwingSword(KeyPressToAngle[KeyCode.L]);
+                        Action(KeyPressToAngle[KeyCode.L]);
                     else if (Input.GetKeyDown(KeyCode.I))
-                        SwingSword(KeyPressToAngle[KeyCode.I]);
+                        Action(KeyPressToAngle[KeyCode.I]);
                     break;
                 }
-            case GreatswordActionsState.Swinging:
-                SwingSwordUpdate();
+            case GreatswordActionsState.Stomping:
+                StompSwordUpdate();
                 break;
         }
 
@@ -315,7 +343,7 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
 
     #endregion MoveGreatsword
 
-    #region Swing
+    #region Stomp
 
     void UpdateAxis()
     {
@@ -330,46 +358,51 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
         DebugAxisList[CurrentSwordPos].Focus();
     }
 
-    void SwingSword(int angle)
+    void StompSword(int angle)
     {
-        CurrentState = GreatswordActionsState.Swinging;
+        CurrentState = GreatswordActionsState.Stomping;
 
-        swingAngle = Vector2.SignedAngle(Vector2.up, moveVelo) + 360 + angle;
+        attackAngle = Vector2.SignedAngle(Vector2.up, moveVelo) + 360 + angle;
 
-        swingStartingAngle = transform.rotation.eulerAngles.z;
-        swingStartVector = transform.position +
+        attackStartVector = transform.position +
                                 new Vector3(swordLength * Mathf.Cos(DegToRad(transform.rotation.eulerAngles.z + 90)),
                                             swordLength * Mathf.Sin(DegToRad(transform.rotation.eulerAngles.z + 90)));
-        swingEndVector = Parent.position +
-                            new Vector3((swordLength + WeaponDistFromPlayer) * Mathf.Cos(DegToRad(swingAngle + 90)),
-                                        (swordLength + WeaponDistFromPlayer) * Mathf.Sin(DegToRad(swingAngle + 90)));
+        attackEndVector = Parent.position +
+                            new Vector3((swordLength + WeaponDistFromPlayer) * Mathf.Cos(DegToRad(attackAngle + 90)),
+                                        (swordLength + WeaponDistFromPlayer) * Mathf.Sin(DegToRad(attackAngle + 90)));
+
+        if (Vector2.Distance(attackStartVector, attackEndVector) < 0.1f)
+        {
+            CurrentState = GreatswordActionsState.Idle;
+            return;
+        }
 
         var maxDist = 2 * (swordLength + WeaponDistFromPlayer);
-        var ratio = Mathf.Clamp((swingEndVector - swingStartVector).magnitude / maxDist, 0, 1);
+        var ratio = Mathf.Clamp((attackEndVector - attackStartVector).magnitude / maxDist, 0, 1);
         ratio = Mathf.Clamp(ratio, 0, 1);
-        swingTimer = SWING_DURATION * ratio;
+        attackTimer = STOMP_DURATION * ratio;
 
-        gizmosPoints[1] = swingStartVector;
-        gizmosPoints[2] = swingEndVector;
+        // gizmosPoints[1] = attackStartVector;
+        // gizmosPoints[2] = attackEndVector;
     }
-    void SwingSwordUpdate()
+    void StompSwordUpdate()
     {
-        swingTimer -= Time.deltaTime;
+        attackTimer -= Time.deltaTime;
 
-        var swingProgress = 1 - swingTimer / SWING_DURATION;
-        if (swingTimer < 0)
+        var stompProgress = 1 - attackTimer / STOMP_DURATION;
+        if (attackTimer < 0)
         {
-            swingProgress = 1f;
+            stompProgress = 1f;
             CurrentState = GreatswordActionsState.Idle;
         }
-        swingProgress *= swingProgress * swingProgress; // y = x^3
+        stompProgress *= stompProgress * stompProgress; // y = x^3
 
-        var p1 = swingStartVector;            // const
-        var p2 = swingEndVector;              // const
+        var p1 = attackStartVector;            // const
+        var p2 = attackEndVector;              // const
         var r = Vector2.Distance(p1, p2) / 2; // const
         var midpoint = (p1 + p2) / 2;         // const
 
-        var newPoint = Vector3.Lerp(p1, p2, swingProgress);
+        var newPoint = Vector3.Lerp(p1, p2, stompProgress);
         var x = Vector2.Distance(newPoint, midpoint);
         var y = Mathf.Sqrt(r * r - x * x);
 
@@ -380,18 +413,18 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
         var rot = Quaternion.AngleAxis(Vector3.Angle(Vector3.up, newPoint - Parent.position), Vector3.Cross(Vector3.up, newPoint - Parent.position));
         transform.SetPositionAndRotation(newPos, rot);
 
-        if (swingProgress == 1f)
-            EndSwordSwing();
+        if (stompProgress == 1f)
+            EndSwordStomp();
 
         // UpdateSwordPos(newSwordAngle);
         UpdateAxis();
     }
-    void EndSwordSwing()
+    void EndSwordStomp()
     {
-        UpdateSwordPos(swingAngle);
+        UpdateSwordPos(attackAngle);
 
         var maxDist = 2 * (swordLength + WeaponDistFromPlayer);
-        var dmg = Mathf.Clamp((swingEndVector - swingStartVector).magnitude / maxDist, 0, 1);
+        var dmg = Mathf.Clamp((attackEndVector - attackStartVector).magnitude / maxDist, 0, 1);
         dmg *= dmg;
         dmg *= SWORD_DAMAGE;
 
@@ -405,22 +438,110 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
 
             if (enemyCollider.IsTouching(MaxHitCollider))
             {
-                popDamage.ShowDamage(enemy, dmg.ToString("0"), Color.red);
+                if (!enemy.TryGetComponent<EnemyInfo>(out var enemyInfo))
+                {
+                    Debug.LogError($"enemy {enemy.name} has no EnemyInfo");
+                    continue;
+                }
+                enemyInfo.TakeDamage(dmg);
                 dpsTracker.AddDmg(dmg);
             }
             else if (enemyCollider.IsTouching(MinHitCollider))
             {
-                popDamage.ShowDamage(enemy, (dmg * 0.6).ToString("0"), Color.red);
+                if (!enemy.TryGetComponent<EnemyInfo>(out var enemyInfo))
+                {
+                    Debug.LogError($"enemy {enemy.name} has no EnemyInfo");
+                    continue;
+                }
+                enemyInfo.TakeDamage(dmg * 0.6f);
                 dpsTracker.AddDmg(dmg);
             }
         }
     }
 
-
     IEnumerator goBackToIdleIn(float time)
     {
         yield return new WaitForSeconds(time);// Wait for one second
         CurrentState = GreatswordActionsState.Idle;
+    }
+
+    #endregion Stomp
+
+    #region Swing
+
+    void SwingSword(int angle)
+    {
+        CurrentState = GreatswordActionsState.Swinging;
+
+        var playerAngle = Vector2.SignedAngle(Vector2.up, moveVelo);
+        attackAngle = playerAngle + angle;
+        if (attackAngle < 0)
+            attackAngle += 360;
+        else if (attackAngle > 360)
+            attackAngle -= 360;
+
+        // 0 | 3
+        // -- --
+        // 1 | 2
+        attackStartVector = transform.position +
+                                new Vector3(swordLength * Mathf.Cos(DegToRad(transform.rotation.eulerAngles.z + 90)),
+                                            swordLength * Mathf.Sin(DegToRad(transform.rotation.eulerAngles.z + 90)));
+        attackEndVector = Parent.position +
+                            new Vector3((swordLength + WeaponDistFromPlayer) * Mathf.Cos(DegToRad(attackAngle + 90)),
+                                        (swordLength + WeaponDistFromPlayer) * Mathf.Sin(DegToRad(attackAngle + 90)));
+        if (Vector2.Distance(attackStartVector, attackEndVector) < 0.1f)
+        {
+            CurrentState = GreatswordActionsState.Idle;
+            return;
+        }
+
+        // mid point
+        {
+            //  0  5
+            // 1    4
+            //  2  3
+
+            int Axis(float a) => Mathf.FloorToInt((a - playerAngle + 360) / 60) % 6;
+            int startingAxis = Axis(transform.rotation.eulerAngles.z);
+            int endAxis = Axis(attackAngle);
+
+            bool clockwiseAttack = false;
+            if (startingAxis <= 2 && endAxis >= 3)
+                clockwiseAttack = true;
+            else if (startingAxis >= 3 && endAxis >= 3 && startingAxis > endAxis)
+                clockwiseAttack = true;
+            else if (startingAxis <= 2 && endAxis <= 2 && startingAxis > endAxis)
+                clockwiseAttack = true;
+
+            // var beforeLastAxis = (clockwiseAttack ? endAxis - 1 : endAxis + 1) % 6;
+            // var angleDiff = clockwiseAttack ? 60 : -60;
+            // var midAngle = attackAngle + 90 + (clockwiseAttack ? 60 : -60);
+
+            // float zHeight = 0.25f;
+            // // dist = zHeight^2 + x^2 + y^2
+            // var dist = Vector2.Distance(attackStartVector, attackEndVector) / 2;
+            // dist -= zHeight * zHeight;
+            // var midX = dist * Mathf.Cos(DegToRad(midAngle));
+            // var midY = dist * Mathf.Sin(DegToRad(midAngle));
+
+            // swingMidVector = (attackStartVector + (attackEndVector - attackStartVector) / 2) + new Vector3(midX, midY, -zHeight);
+        }
+
+        var maxDist = 2 * (swordLength + WeaponDistFromPlayer);
+        var ratio = Mathf.Clamp((attackEndVector - attackStartVector).magnitude / maxDist, 0, 1);
+        ratio = Mathf.Clamp(ratio, 0, 1);
+        attackTimer = STOMP_DURATION * ratio;
+
+        // debug
+        CurrentState = GreatswordActionsState.Idle;
+
+        gizmosPoints[1] = attackStartVector;
+        gizmosPoints[2] = attackEndVector;
+        gizmosPoints[3] = swingMidVector;
+    }
+    void SwingSwordUpdate()
+    {
+
     }
 
     #endregion Swing

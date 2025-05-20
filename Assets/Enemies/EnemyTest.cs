@@ -9,19 +9,29 @@ public enum EnemyTestState
     Attacking,
     StartExploding,
     Exploding,
-    Dead
+    Dead,
+    DmgFlashing,
 }
 
 [RequireComponent(typeof(EnemyInfo))]
-public class EnemyTest : MonoBehaviour
+public class EnemyTest : MonoBehaviour, IEnemy
 {
     GameObject Player;
     private float Speed;
     public EnemyTestState State = EnemyTestState.Idle;
     SpriteRenderer SpriteRenderer;
+    EnemyInfo enemyInfo;
+
+    Transform HelperGO;
+    PopDamage popDamage;
 
     public Sprite explosionSpriteStart;
     public Sprite explosionSpriteEnd;
+
+    public Color colorBase = Color.red;
+    public Color colorFlash = Color.white;
+    public Color colorDeathFlash = Color.black;
+    public Color colorDamageStun = Color.white;
 
     public float ExplosionDistance;
     public float ExplosionDelayTime = 2f;
@@ -33,8 +43,12 @@ public class EnemyTest : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        Speed = GetComponent<EnemyInfo>().Speed;
+        enemyInfo = GetComponent<EnemyInfo>();
+        Speed = enemyInfo.Speed;
         SpriteRenderer = GetComponent<SpriteRenderer>();
+
+        HelperGO = GameObject.FindGameObjectWithTag("Helper").transform;
+        popDamage = HelperGO.GetComponent<PopDamage>();
 
         Player = GameObject.FindGameObjectWithTag("Player");
         if (Player == null)
@@ -44,8 +58,9 @@ public class EnemyTest : MonoBehaviour
         }
     }
 
-    // Update is called once per frame
-    void Update()
+
+    #region CustomUpdate
+    public void CustomUpdate()
     {
         switch (State)
         {
@@ -60,6 +75,9 @@ public class EnemyTest : MonoBehaviour
                 break;
             case EnemyTestState.Exploding:
                 Explode();
+                break;
+            case EnemyTestState.DmgFlashing:
+                Flash();
                 break;
             case EnemyTestState.Dead:
             default:
@@ -84,7 +102,7 @@ public class EnemyTest : MonoBehaviour
             explosionTimer = ExplosionEndTime;
             switchColorTime = 0;
 
-            SpriteRenderer.color = Color.white;
+            SpriteRenderer.color = colorFlash;
             SpriteRenderer.sprite = explosionSpriteStart;
             return;
         }
@@ -92,7 +110,7 @@ public class EnemyTest : MonoBehaviour
         switchColorTime -= Time.deltaTime;
         if (switchColorTime < 0)
         {
-            SpriteRenderer.color = SpriteRenderer.color == Color.white ? Color.red : Color.white;
+            SpriteRenderer.color = SpriteRenderer.color == colorFlash ? colorBase : colorFlash;
             switchColorTime = explosionTimer / 5;
         }
     }
@@ -116,13 +134,13 @@ public class EnemyTest : MonoBehaviour
             switchColorTime -= Time.deltaTime;
             if (switchColorTime < 0)
             {
-                SpriteRenderer.color = SpriteRenderer.color == Color.white ? Color.black : Color.white;
+                SpriteRenderer.color = SpriteRenderer.color == colorFlash ? colorDeathFlash : colorFlash;
                 switchColorTime = 0.07f;
             }
         }
         else if (explosionTimer > 0)
         {
-            SpriteRenderer.color = Color.white;
+            SpriteRenderer.color = colorFlash;
             SpriteRenderer.sprite = explosionSpriteEnd;
         }
         else
@@ -130,7 +148,34 @@ public class EnemyTest : MonoBehaviour
     }
     void Kill()
     {
-
         Destroy(gameObject);
     }
+    #endregion CustomUpdate
+
+    #region TakeDamage
+    public void TakeDamage(float damage)
+    {
+        popDamage.ShowDamage(transform, damage.ToString("0.##"), textcolor: Color.red, time: 0.3f);
+
+        SpriteRenderer.color = colorBase;
+
+        State = EnemyTestState.DmgFlashing;
+        switchColorTime = 0.3f;
+
+        enemyInfo.HP -= damage;
+    }
+    public void Flash()
+    {
+        switchColorTime -= Time.deltaTime;
+        if (switchColorTime < 0)
+        {
+            SpriteRenderer.color = colorBase;
+
+            if (enemyInfo.HP > 0)
+                State = EnemyTestState.Attacking;
+            else
+                State = EnemyTestState.Dead;
+        }
+    }
+    #endregion TakeDamage
 }
