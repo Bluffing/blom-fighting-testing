@@ -10,6 +10,7 @@ using UnityEngine;
 // - [ ] shoulder sword (K) / block? (M?)
 // - [ ] 2 inputs
 // - [ ] perfect next input timing bonus?
+// - [ ] momentum
 
 public enum GreatswordActionsState
 {
@@ -32,13 +33,15 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
     public float stompSpeed = 1f;
 
     public int startingAngle = 0;
-    public int SWORD_DAMAGE = 200;
+    public int SWORD_STOMP_DAMAGE = 200;
+    public int SWORD_SWING_DAMAGE = 100;
 
     #endregion Info
 
     #region GO
 
     // debug
+    public float DEBUG_FLOAT = 0f;
     public GameObject DebugGO;
     public GameObject DebugAxisPrefab;
     public DebugAxisScript[] DebugAxisList = new DebugAxisScript[6];
@@ -62,10 +65,15 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
 
     // float attackStartingAngle = 0f;
     Vector3 attackStartVector = Vector3.zero;
-    Vector3 swingMidVector = Vector3.zero;
+    // Vector3 swingMidVector = Vector3.zero;
     Vector3 attackEndVector = Vector3.zero;
     float attackAngle = 0f;
+    float startSwingAngle = 0f;
     float attackTimer = 0f;
+    bool SwingClockwise = true;
+    public float swingHeight = 0.5f;
+    public float SwingAngle;
+    List<Transform> SwingHit = new();
 
     #endregion Stomp / Swing
 
@@ -266,6 +274,9 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
             case GreatswordActionsState.Stomping:
                 StompSwordUpdate();
                 break;
+            case GreatswordActionsState.Swinging:
+                SwingSwordUpdate();
+                break;
         }
 
         // todo : buffer
@@ -378,7 +389,7 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
         }
 
         var maxDist = 2 * (swordLength + WeaponDistFromPlayer);
-        var ratio = Mathf.Clamp((attackEndVector - attackStartVector).magnitude / maxDist, 0, 1);
+        var ratio = Vector2.Distance(attackStartVector, attackEndVector) / maxDist;
         ratio = Mathf.Clamp(ratio, 0, 1);
         attackTimer = STOMP_DURATION * ratio;
 
@@ -426,7 +437,7 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
         var maxDist = 2 * (swordLength + WeaponDistFromPlayer);
         var dmg = Mathf.Clamp((attackEndVector - attackStartVector).magnitude / maxDist, 0, 1);
         dmg *= dmg;
-        dmg *= SWORD_DAMAGE;
+        dmg *= SWORD_STOMP_DAMAGE;
 
         foreach (Transform enemy in EnemiesParent)
         {
@@ -497,51 +508,123 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
 
         // mid point
         {
-            //  0  5
-            // 1    4
-            //  2  3
+            startSwingAngle = transform.rotation.eulerAngles.z - playerAngle;
+            if (startSwingAngle < 0)
+                startSwingAngle += 360;
 
-            int Axis(float a) => Mathf.FloorToInt((a - playerAngle + 360) / 60) % 6;
-            int startingAxis = Axis(transform.rotation.eulerAngles.z);
-            int endAxis = Axis(attackAngle);
+            bool startRight = startSwingAngle >= 180;
+            bool endRight = angle >= 180;
 
-            bool clockwiseAttack = false;
-            if (startingAxis <= 2 && endAxis >= 3)
-                clockwiseAttack = true;
-            else if (startingAxis >= 3 && endAxis >= 3 && startingAxis > endAxis)
-                clockwiseAttack = true;
-            else if (startingAxis <= 2 && endAxis <= 2 && startingAxis > endAxis)
-                clockwiseAttack = true;
-
-            // var beforeLastAxis = (clockwiseAttack ? endAxis - 1 : endAxis + 1) % 6;
-            // var angleDiff = clockwiseAttack ? 60 : -60;
-            // var midAngle = attackAngle + 90 + (clockwiseAttack ? 60 : -60);
-
-            // float zHeight = 0.25f;
-            // // dist = zHeight^2 + x^2 + y^2
-            // var dist = Vector2.Distance(attackStartVector, attackEndVector) / 2;
-            // dist -= zHeight * zHeight;
-            // var midX = dist * Mathf.Cos(DegToRad(midAngle));
-            // var midY = dist * Mathf.Sin(DegToRad(midAngle));
-
-            // swingMidVector = (attackStartVector + (attackEndVector - attackStartVector) / 2) + new Vector3(midX, midY, -zHeight);
+            if (startRight && !endRight) // don't go behind back
+            {
+                SwingClockwise = false;
+                SwingAngle = 360 - startSwingAngle + angle;
+            }
+            else if (!(!startRight && endRight) && startSwingAngle < angle)
+            {
+                SwingClockwise = false;
+                SwingAngle = angle - startSwingAngle;
+            }
+            else
+            {
+                SwingClockwise = true;
+                SwingAngle = startSwingAngle - angle;
+                if (!startRight && endRight)
+                    SwingAngle += 360;
+            }
         }
 
-        var maxDist = 2 * (swordLength + WeaponDistFromPlayer);
-        var ratio = Mathf.Clamp((attackEndVector - attackStartVector).magnitude / maxDist, 0, 1);
+        var ratio = SwingAngle / 360f;
         ratio = Mathf.Clamp(ratio, 0, 1);
-        attackTimer = STOMP_DURATION * ratio;
+        attackTimer = SWING_DURATION * ratio;
 
-        // debug
-        CurrentState = GreatswordActionsState.Idle;
+        SwingHit.Clear();
 
         gizmosPoints[1] = attackStartVector;
         gizmosPoints[2] = attackEndVector;
-        gizmosPoints[3] = swingMidVector;
     }
     void SwingSwordUpdate()
     {
+        attackTimer -= Time.deltaTime;
 
+        var swingProgress = 1 - (attackTimer / SWING_DURATION);
+        if (attackTimer < 0)
+        {
+            swingProgress = 1f;
+            CurrentState = GreatswordActionsState.Idle;
+        }
+        swingProgress = Mathf.Pow(swingProgress, 7); // y = x^7
+        swingProgress *= SwingClockwise ? -1 : 1;
+
+        var newAngle = startSwingAngle + swingProgress * SwingAngle;
+
+        // 0 - up - 0
+        var swingUpAngle = Mathf.Sin(swingProgress * Mathf.PI) * 30 * (SwingClockwise ? -1 : 1);
+        var swingUpAngleX = -Mathf.Cos(DegToRad(newAngle)) * swingUpAngle;
+        var swingUpAngleY = -Mathf.Sin(DegToRad(newAngle)) * swingUpAngle;
+
+        var rot = Quaternion.Euler(new Vector3(swingUpAngleX, swingUpAngleY, newAngle));
+        var pos = Parent.position +
+                    new Vector3(WeaponDistFromPlayer * Mathf.Cos(DegToRad(newAngle + 90)),
+                                WeaponDistFromPlayer * Mathf.Sin(DegToRad(newAngle + 90)),
+                                -0.1f);
+        transform.SetPositionAndRotation(pos, rot);
+
+        SwingAttack();
+
+        // UpdateSwordPos(newAngle);
+        UpdateAxis();
+    }
+    void SwingAttack()
+    {
+        var swingProgress = 1 - (attackTimer / SWING_DURATION);
+        if (attackTimer < 0)
+        {
+            swingProgress = 1f;
+            CurrentState = GreatswordActionsState.Idle;
+        }
+        swingProgress = Mathf.Pow(swingProgress, 7); // y = x^7
+
+        const float MAX_DMG_FROM_SWING = 0.5f; // after 50% of the swing = 100% dmg
+        swingProgress = Mathf.Clamp(swingProgress, 0, MAX_DMG_FROM_SWING) * 1 / MAX_DMG_FROM_SWING;
+
+        var dmg = swingProgress * SWORD_STOMP_DAMAGE;
+
+        foreach (Transform enemy in EnemiesParent)
+        {
+            if (SwingHit.Contains(enemy)) // already hit
+                continue;
+
+            if (!enemy.TryGetComponent<CustomRectangleCollider>(out var enemyCollider))
+            {
+                SwingHit.Add(enemy);
+                Debug.LogError($"enemy {enemy.name} has no collider");
+                continue;
+            }
+
+            if (enemyCollider.IsTouching(MaxHitCollider))
+            {
+                SwingHit.Add(enemy);
+                if (!enemy.TryGetComponent<EnemyInfo>(out var enemyInfo))
+                {
+                    Debug.LogError($"enemy {enemy.name} has no EnemyInfo");
+                    continue;
+                }
+                enemyInfo.TakeDamage(dmg);
+                dpsTracker.AddDmg(dmg);
+            }
+            else if (enemyCollider.IsTouching(MinHitCollider))
+            {
+                SwingHit.Add(enemy);
+                if (!enemy.TryGetComponent<EnemyInfo>(out var enemyInfo))
+                {
+                    Debug.LogError($"enemy {enemy.name} has no EnemyInfo");
+                    continue;
+                }
+                enemyInfo.TakeDamage(dmg * 0.6f);
+                dpsTracker.AddDmg(dmg);
+            }
+        }
     }
 
     #endregion Swing
@@ -604,6 +687,11 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
             Gizmos.color = gizmosColors[i % gizmosColors.Length];
             Gizmos.DrawLine(gizmosLines[i].pt1, gizmosLines[i].pt2);
         }
+
+        // var c = Color.white;
+        // c.a = 0.5f;
+        // Gizmos.color = c;
+        // Gizmos.DrawSphere(Parent.position, swordLength + WeaponDistFromPlayer);
     }
 
     #endregion Debug
