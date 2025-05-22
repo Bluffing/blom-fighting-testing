@@ -13869,6 +13869,10 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3282631431093588822, guid: dfd5c60d538ea2a42be5202774eeb17e, type: 3}
+      propertyPath: MaxMomentum
+      value: 720
+      objectReference: {fileID: 0}
+    - target: {fileID: 3282631431093588822, guid: dfd5c60d538ea2a42be5202774eeb17e, type: 3}
       propertyPath: startingAngle
       value: 0
       objectReference: {fileID: 0}
@@ -13879,6 +13883,14 @@ PrefabInstance:
     - target: {fileID: 3282631431093588822, guid: dfd5c60d538ea2a42be5202774eeb17e, type: 3}
       propertyPath: SWING_DURATION
       value: 1.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 3282631431093588822, guid: dfd5c60d538ea2a42be5202774eeb17e, type: 3}
+      propertyPath: SWORD_SWING_DAMAGE
+      value: 150
+      objectReference: {fileID: 0}
+    - target: {fileID: 3282631431093588822, guid: dfd5c60d538ea2a42be5202774eeb17e, type: 3}
+      propertyPath: SwingMomentumAccelerationSpeed
+      value: 720
       objectReference: {fileID: 0}
     - target: {fileID: 5661201587867151366, guid: dfd5c60d538ea2a42be5202774eeb17e, type: 3}
       propertyPath: m_LocalPosition.x
