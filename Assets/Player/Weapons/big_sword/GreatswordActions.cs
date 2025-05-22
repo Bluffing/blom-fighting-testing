@@ -74,6 +74,7 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
     public float CurrentMomentum = 0f;
     public float MaxMomentum = 360f; // degrees / second
     public float SwingMomentumAccelerationSpeed;
+    private float SwingPlayerStartingAngle = 0f;
 
     #endregion Stomp / Swing
 
@@ -87,12 +88,16 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
 
     #region Properties
 
-    public float WeaponDistFromPlayer = 0.5f;
+    public float SwordDistFromPlayer = 0.5f;
+    public float SwordLength = 0.5f;
+    float SwordEnd() => SwordDistFromPlayer + SwordLength;
+
     private Vector3 lastPos;
-    private Vector3 moveVelo;
+    private Vector3 moveVelo = new Vector2(0, 1);
+    private float PlayerAngle = 0;
     private int CurrentSwordPos = 0;
 
-    public Dictionary<KeyCode, int> KeyPressToAngle = new Dictionary<KeyCode, int>()
+    public Dictionary<KeyCode, int> KeyPressToAngle = new()
     {
         { KeyCode.U, 30 },
         { KeyCode.H, 90 },
@@ -228,6 +233,8 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
             default:
                 break;
         }
+
+        PlayerAngle = playerActions.arrow.eulerAngles.z;
     }
 
     public void ActionUpdate(bool debugMovement = false)
@@ -292,8 +299,8 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
     {
         var rot = Quaternion.Euler(new Vector3(0, 0, angle));
         var pos = Parent.position +
-                    new Vector3(WeaponDistFromPlayer * Mathf.Cos(DegToRad(angle + 90)),
-                                WeaponDistFromPlayer * Mathf.Sin(DegToRad(angle + 90)),
+                    new Vector3(SwordDistFromPlayer * Mathf.Cos(DegToRad(angle + 90)),
+                                SwordDistFromPlayer * Mathf.Sin(DegToRad(angle + 90)),
                                 -0.1f);
         transform.SetPositionAndRotation(pos, rot);
     }
@@ -319,7 +326,7 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
 
         // move sword
         var swordNewMoveDistance = SwordWeight / (SwordWeight + playerInfo.Weight) * move.magnitude;
-        var fullCircumference = 2 * Mathf.PI * (WeaponDistFromPlayer + swordLength);
+        var fullCircumference = 2 * Mathf.PI * SwordEnd();
         var sign = Vector2.SignedAngle(prevSwordPointPos - prevPos, move) > 0 ? -1 : 1;
         var newAngle = swordNewMoveDistance / fullCircumference * 360 * sign +
                        transform.rotation.eulerAngles.z;
@@ -334,8 +341,8 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
 
         var move = Parent.position - lastPos;
         var prevSwordPointPos = transform.position - move +
-                                new Vector3(swordLength * Mathf.Cos(DegToRad(transform.rotation.eulerAngles.z + 90)),
-                                            swordLength * Mathf.Sin(DegToRad(transform.rotation.eulerAngles.z + 90)));
+                                new Vector3(SwordLength * Mathf.Cos(DegToRad(transform.rotation.eulerAngles.z + 90)),
+                                            SwordLength * Mathf.Sin(DegToRad(transform.rotation.eulerAngles.z + 90)));
 
         // drag sword or go towards sword
         var signedAngle = Vector2.SignedAngle(Parent.position - prevSwordPointPos, move);
@@ -346,8 +353,8 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
 
         // draw drag line
         var newSwordPointPos = transform.position +
-                                new Vector3(swordLength * Mathf.Cos(DegToRad(transform.rotation.eulerAngles.z + 90)),
-                                            swordLength * Mathf.Sin(DegToRad(transform.rotation.eulerAngles.z + 90)));
+                                new Vector3(SwordLength * Mathf.Cos(DegToRad(transform.rotation.eulerAngles.z + 90)),
+                                            SwordLength * Mathf.Sin(DegToRad(transform.rotation.eulerAngles.z + 90)));
         Debug.DrawLine(prevSwordPointPos, newSwordPointPos, Color.red, 1f);
         lastPos = Parent.position;
     }
@@ -362,8 +369,8 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
             DebugAxisList[i].UnFocus();
 
         var newSwordPointPos = transform.position +
-                                new Vector3(swordLength * Mathf.Cos(DegToRad(transform.rotation.eulerAngles.z + 90)),
-                                            swordLength * Mathf.Sin(DegToRad(transform.rotation.eulerAngles.z + 90)));
+                                new Vector3(SwordLength * Mathf.Cos(DegToRad(transform.rotation.eulerAngles.z + 90)),
+                                            SwordLength * Mathf.Sin(DegToRad(transform.rotation.eulerAngles.z + 90)));
         var swordAngle = Vector2.SignedAngle(moveVelo, newSwordPointPos - Parent.position) + 360;
         CurrentSwordPos = (int)(swordAngle / 60) % 6;
         DebugAxisList[CurrentSwordPos].Focus();
@@ -376,11 +383,11 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
         finalAngle = Vector2.SignedAngle(Vector2.up, moveVelo) + 360 + angle;
 
         attackStartVector = transform.position +
-                                new Vector3(swordLength * Mathf.Cos(DegToRad(transform.rotation.eulerAngles.z + 90)),
-                                            swordLength * Mathf.Sin(DegToRad(transform.rotation.eulerAngles.z + 90)));
+                                new Vector3(SwordLength * Mathf.Cos(DegToRad(transform.rotation.eulerAngles.z + 90)),
+                                            SwordLength * Mathf.Sin(DegToRad(transform.rotation.eulerAngles.z + 90)));
         attackEndVector = Parent.position +
-                            new Vector3((swordLength + WeaponDistFromPlayer) * Mathf.Cos(DegToRad(finalAngle + 90)),
-                                        (swordLength + WeaponDistFromPlayer) * Mathf.Sin(DegToRad(finalAngle + 90)));
+                            new Vector3(SwordEnd() * Mathf.Cos(DegToRad(finalAngle + 90)),
+                                        SwordEnd() * Mathf.Sin(DegToRad(finalAngle + 90)));
 
         if (Vector2.Distance(attackStartVector, attackEndVector) < 0.1f)
         {
@@ -388,7 +395,7 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
             return;
         }
 
-        var maxDist = 2 * (swordLength + WeaponDistFromPlayer);
+        var maxDist = 2 * SwordEnd();
         var ratio = Vector2.Distance(attackStartVector, attackEndVector) / maxDist;
         ratio = Mathf.Clamp(ratio, 0, 1);
         attackTimer = STOMP_DURATION * ratio;
@@ -420,7 +427,7 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
         newPoint.z = transform.position.z - y;
         gizmosPoints[0] = newPoint;
 
-        var newPos = Parent.position + (newPoint - Parent.position).normalized * WeaponDistFromPlayer;
+        var newPos = Parent.position + (newPoint - Parent.position).normalized * SwordDistFromPlayer;
         var rot = Quaternion.AngleAxis(Vector3.Angle(Vector3.up, newPoint - Parent.position), Vector3.Cross(Vector3.up, newPoint - Parent.position));
         transform.SetPositionAndRotation(newPos, rot);
 
@@ -434,7 +441,7 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
     {
         UpdateSwordPos(finalAngle);
 
-        var maxDist = 2 * (swordLength + WeaponDistFromPlayer);
+        var maxDist = 2 * SwordEnd();
         var dmg = Mathf.Clamp((attackEndVector - attackStartVector).magnitude / maxDist, 0, 1);
         dmg *= dmg;
         dmg *= SWORD_STOMP_DAMAGE;
@@ -484,19 +491,19 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
     {
         CurrentState = GreatswordActionsState.Swinging;
 
-        var playerAngle = Vector2.SignedAngle(Vector2.up, moveVelo);
-        finalAngle = playerAngle + angle;
+        SwingPlayerStartingAngle = PlayerAngle;
+        finalAngle = PlayerAngle + angle;
         if (finalAngle < 0)
             finalAngle += 360;
         else if (finalAngle > 360)
             finalAngle -= 360;
 
         attackStartVector = transform.position +
-                                new Vector3(swordLength * Mathf.Cos(DegToRad(transform.rotation.eulerAngles.z + 90)),
-                                            swordLength * Mathf.Sin(DegToRad(transform.rotation.eulerAngles.z + 90)));
+                                new Vector3(SwordLength * Mathf.Cos(DegToRad(transform.rotation.eulerAngles.z + 90)),
+                                            SwordLength * Mathf.Sin(DegToRad(transform.rotation.eulerAngles.z + 90)));
         attackEndVector = Parent.position +
-                            new Vector3((swordLength + WeaponDistFromPlayer) * Mathf.Cos(DegToRad(finalAngle + 90)),
-                                        (swordLength + WeaponDistFromPlayer) * Mathf.Sin(DegToRad(finalAngle + 90)));
+                            new Vector3(SwordEnd() * Mathf.Cos(DegToRad(finalAngle + 90)),
+                                        SwordEnd() * Mathf.Sin(DegToRad(finalAngle + 90)));
         if (Vector2.Distance(attackStartVector, attackEndVector) < 0.1f)
         {
             CurrentState = GreatswordActionsState.Idle;
@@ -505,7 +512,7 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
 
         // mid point
         {
-            startSwingAngle = transform.rotation.eulerAngles.z - playerAngle;
+            startSwingAngle = transform.rotation.eulerAngles.z - PlayerAngle;
             if (startSwingAngle < 0)
                 startSwingAngle += 360;
 
@@ -539,9 +546,20 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
     }
     void SwingSwordUpdate()
     {
+        // rotate player towards sword
+        if (CurrentMomentum == 0f)
+        {
+            var a = Mathf.Abs(PlayerAngle - transform.rotation.eulerAngles.z) % 360;
+            if (a > 45 && a < 315)
+            {
+                var MoveAmount = Time.deltaTime * (SwingClockwise ? 720 : -720);
+                playerActions.arrow.rotation = Quaternion.Euler(new Vector3(0, 0, playerActions.arrow.rotation.eulerAngles.z + MoveAmount));
+                return;
+            }
+        }
+
         // momentum : degrees / second
-        var bloo = Time.deltaTime * SwingMomentumAccelerationSpeed;
-        CurrentMomentum += bloo;
+        CurrentMomentum += Time.deltaTime * SwingMomentumAccelerationSpeed;
         CurrentMomentum = Mathf.Clamp(CurrentMomentum, 0, MaxMomentum);
 
         var frameMomentum = CurrentMomentum * Time.deltaTime;
@@ -564,10 +582,22 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
 
         var rot = Quaternion.Euler(new Vector3(swingUpAngleX, swingUpAngleY, newAngle));
         var pos = Parent.position +
-                    new Vector3(WeaponDistFromPlayer * Mathf.Cos(DegToRad(newAngle + 90)),
-                                WeaponDistFromPlayer * Mathf.Sin(DegToRad(newAngle + 90)),
+                    new Vector3(SwordDistFromPlayer * Mathf.Cos(DegToRad(newAngle + 90)),
+                                SwordDistFromPlayer * Mathf.Sin(DegToRad(newAngle + 90)),
                                 -0.1f);
         transform.SetPositionAndRotation(pos, rot);
+
+        // rotate player with sword
+        if (SwingProgress < 0.5f)
+            playerActions.arrow.rotation = Quaternion.Euler(new Vector3(0, 0, newAngle + (SwingClockwise ? -45 : 45)));
+        else if (SwingProgress == 1f)
+            playerActions.arrow.rotation = Quaternion.Euler(new Vector3(0, 0, SwingPlayerStartingAngle));
+        else
+        {
+            var relativeAngle = Mathf.Abs(PlayerAngle - transform.rotation.eulerAngles.z) % 360;
+            if (relativeAngle > 45 && relativeAngle < 315)
+                playerActions.arrow.rotation = Quaternion.Euler(new Vector3(0, 0, SwingClockwise ? 45 : -45));
+        }
 
         SwingAttackCollide();
 
@@ -638,8 +668,6 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
         Debug.Log($"cuatro : {Vector2.SignedAngle(t1, new Vector2(0, -1))}");
     }
 
-    const float swordLength = 0.5f;
-
     Color[] gizmosColors = {
         Color.red,
         Color.green,
@@ -680,7 +708,7 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
         // var c = Color.white;
         // c.a = 0.5f;
         // Gizmos.color = c;
-        // Gizmos.DrawSphere(Parent.position, swordLength + WeaponDistFromPlayer);
+        // Gizmos.DrawSphere(Parent.position, SwordEnd());
     }
 
     #endregion Debug
