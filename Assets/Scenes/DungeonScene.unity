@@ -1522,6 +1522,8 @@ MonoBehaviour:
   State: 0
   colorBase: {r: 0.62352943, g: 0.28235295, b: 0.03137255, a: 1}
   colorFlash: {r: 1, g: 1, b: 1, a: 1}
+  KnockbackVelo: {x: 0, y: 0}
+  KnockbackTime: 0
 --- !u!1 &133754017
 GameObject:
   m_ObjectHideFlags: 0
@@ -7543,6 +7545,8 @@ MonoBehaviour:
   ExplosionDistance: 2
   ExplosionDelayTime: 2
   ExplosionEndTime: 1
+  KnockbackVelo: {x: 0, y: 0}
+  KnockbackTime: 0
 --- !u!212 &702555805
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -14161,6 +14165,10 @@ PrefabInstance:
       value: 0.2
       objectReference: {fileID: 0}
     - target: {fileID: 3282631431093588822, guid: dfd5c60d538ea2a42be5202774eeb17e, type: 3}
+      propertyPath: SwingStartMaxMomentum
+      value: 90
+      objectReference: {fileID: 0}
+    - target: {fileID: 3282631431093588822, guid: dfd5c60d538ea2a42be5202774eeb17e, type: 3}
       propertyPath: DebugAxisList.Array.data[0]
       value: 
       objectReference: {fileID: 0}
@@ -14186,7 +14194,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3282631431093588822, guid: dfd5c60d538ea2a42be5202774eeb17e, type: 3}
       propertyPath: SwingMomentumAccelerationSpeed
-      value: 720
+      value: 1080
       objectReference: {fileID: 0}
     - target: {fileID: 5661201587867151366, guid: dfd5c60d538ea2a42be5202774eeb17e, type: 3}
       propertyPath: m_LocalPosition.x

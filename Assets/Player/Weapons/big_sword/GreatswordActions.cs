@@ -72,9 +72,22 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
     float SwingProgress = 0f;
     List<Transform> SwingHit = new();
     public float CurrentMomentum = 0f;
-    public float MaxMomentum = 360f; // degrees / second
+    public float MaxMomentum = 360; // degrees / second
+    public float SwingStartMaxMomentum = 180; // degrees / second
     public float SwingMomentumAccelerationSpeed;
     private float SwingPlayerStartingAngle = 0f;
+    private float SwingMaxMomentum(float swingProgress) => swingProgress < 45 ? SwingStartMaxMomentum : MaxMomentum;
+    // private (float swingAmount, float MaxMomentum)[] SwingMomentum = {
+    //     (45, 90),
+    //     (90, 360),
+    // };
+    // private float SwingMaxMomentum(float swingProgress)
+    // {
+    //     for (int i = 0; i < SwingMomentum.Length; i++)
+    //         if (swingProgress < SwingMomentum[i].swingAmount)
+    //             return SwingMomentum[i].MaxMomentum;
+    //     return MaxMomentum;
+    // }
 
     #endregion Stomp / Swing
 
@@ -546,21 +559,25 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
     }
     void SwingSwordUpdate()
     {
-        // rotate player towards sword
-        if (CurrentMomentum == 0f)
+        if (CurrentMomentum < SwingMaxMomentum(SwingProgress * SwingAngle))
         {
-            var a = Mathf.Abs(PlayerAngle - transform.rotation.eulerAngles.z) % 360;
-            if (a > 45 && a < 315)
+            // rotate player towards sword
+            if (CurrentMomentum == 0f)
             {
-                var MoveAmount = Time.deltaTime * (SwingClockwise ? 720 : -720);
-                playerActions.arrow.rotation = Quaternion.Euler(new Vector3(0, 0, playerActions.arrow.rotation.eulerAngles.z + MoveAmount));
-                return;
+                var a = (PlayerAngle - transform.rotation.eulerAngles.z + 360) % 360;
+                Debug.Log($"a : {a}, PlayerAngle : {PlayerAngle}");
+                if (a > 45 && a < 315)
+                {
+                    var MoveAmount = Time.deltaTime * (a < 180 ? -720 : 720);
+                    playerActions.arrow.rotation = Quaternion.Euler(new Vector3(0, 0, playerActions.arrow.rotation.eulerAngles.z + MoveAmount));
+                    return;
+                }
             }
-        }
 
-        // momentum : degrees / second
-        CurrentMomentum += Time.deltaTime * SwingMomentumAccelerationSpeed;
-        CurrentMomentum = Mathf.Clamp(CurrentMomentum, 0, MaxMomentum);
+            // momentum : degrees / second
+            CurrentMomentum += Time.deltaTime * SwingMomentumAccelerationSpeed;
+            CurrentMomentum = Mathf.Clamp(CurrentMomentum, 0, MaxMomentum);
+        }
 
         var frameMomentum = CurrentMomentum * Time.deltaTime;
         SwingProgress += Mathf.Abs(frameMomentum / SwingAngle);
@@ -594,7 +611,7 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
             playerActions.arrow.rotation = Quaternion.Euler(new Vector3(0, 0, SwingPlayerStartingAngle));
         else
         {
-            var relativeAngle = Mathf.Abs(PlayerAngle - transform.rotation.eulerAngles.z) % 360;
+            var relativeAngle = (PlayerAngle - transform.rotation.eulerAngles.z + 360) % 360;
             if (relativeAngle > 45 && relativeAngle < 315)
                 playerActions.arrow.rotation = Quaternion.Euler(new Vector3(0, 0, SwingClockwise ? 45 : -45));
         }
@@ -605,9 +622,10 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
     }
     void SwingAttackCollide()
     {
-        var dmg = Mathf.Abs(CurrentMomentum) / MaxMomentum * SWORD_SWING_DAMAGE;
-        if (Mathf.Abs(CurrentMomentum) / MaxMomentum < 0.5f)
-            return;
+        var dmgRatio = Mathf.Abs(CurrentMomentum) / MaxMomentum;
+        if (dmgRatio < 0.5f) return;
+
+        var dmg = dmgRatio * SWORD_SWING_DAMAGE;
 
         foreach (Transform enemy in EnemiesParent)
         {
@@ -630,6 +648,7 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
                     continue;
                 }
                 enemyInfo.TakeDamage(dmg);
+                enemyInfo.Knockback(enemy.position - Parent.position, 2f * dmgRatio, 0.1f);
                 dpsTracker.AddDmg(dmg);
             }
             else if (enemyCollider.IsTouching(MinHitCollider))
@@ -641,6 +660,7 @@ public class GreatswordActions : MonoBehaviour, IWeaponActions
                     continue;
                 }
                 enemyInfo.TakeDamage(dmg * 0.6f);
+                enemyInfo.Knockback(enemy.position - Parent.position, 1.2f * dmgRatio, 0.1f);
                 dpsTracker.AddDmg(dmg);
             }
         }

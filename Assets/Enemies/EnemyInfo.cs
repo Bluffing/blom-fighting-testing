@@ -20,4 +20,7 @@ public class EnemyInfo : MonoBehaviour
 
     void Update() =>
         EnemyScript?.CustomUpdate();
+
+    public void Knockback(Vector2 velo, float force, float time) =>
+        EnemyScript?.Knockback(velo, force, time);
 }

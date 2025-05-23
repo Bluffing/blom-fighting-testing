@@ -39,6 +39,12 @@ public class EnemyDummy : MonoBehaviour, IEnemy
     #region CustomUpdate
     public void CustomUpdate()
     {
+        if (KnockbackTime > 0)
+        {
+            transform.position += (Vector3)KnockbackVelo * Time.deltaTime;
+            KnockbackTime -= Time.deltaTime;
+        }
+
         switch (State)
         {
             case EnemyDummyState.DmgFlashing:
@@ -71,4 +77,14 @@ public class EnemyDummy : MonoBehaviour, IEnemy
         }
     }
     #endregion TakeDamage
+
+    #region Knockback
+    public Vector2 KnockbackVelo;
+    public float KnockbackTime;
+    public void Knockback(Vector2 direction, float force, float time = 0.2f)
+    {
+        KnockbackVelo = direction.normalized * force;
+        KnockbackTime = time;
+    }
+    #endregion Knockback
 }
