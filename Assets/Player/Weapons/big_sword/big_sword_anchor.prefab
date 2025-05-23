@@ -111,14 +111,14 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8308164484233441047}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: 0.9659259, w: -0.25881907}
-  m_LocalPosition: {x: 0.39999962, y: -0.69282055, z: -0.10000038}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: -0.10000038}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 3905257776324332435}
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 210}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &3282631431093588822
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -132,9 +132,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   SwordWeight: 50
-  swingSpeed: 25
+  stompSpeed: 1
   startingAngle: 210
-  SWORD_DAMAGE: 200
+  SWORD_STOMP_DAMAGE: 200
+  SWORD_SWING_DAMAGE: 100
+  DEBUG_FLOAT: 0
   DebugGO: {fileID: 0}
   DebugAxisPrefab: {fileID: 2352882356727622939, guid: e2221bcff33bcde4eb33096e795399ad, type: 3}
   DebugAxisList:
@@ -144,12 +146,18 @@ MonoBehaviour:
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
-  SWING_DURATION: 0.5
+  STOMP_DURATION: 1
+  CurrentMomentum: 0
+  MaxMomentum: 360
+  SwingStartMaxMomentum: 180
+  SwingMomentumAccelerationSpeed: 0
+  SwingAfterImageEffect: {fileID: 0}
   MaxHitCollider: {fileID: 8185915238626577615}
   MinHitCollider: {fileID: 411509935603932628}
-  WeaponDistFromPlayer: 0.2
+  SwordDistFromPlayer: 0.5
+  SwordLength: 0.5
   CurrentState: 0
-  SwingAngleThingy: {x: 0, y: 0, z: 0}
+  CurrentMode: 0
 --- !u!114 &411509935603932628
 MonoBehaviour:
   m_ObjectHideFlags: 0
