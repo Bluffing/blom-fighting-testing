@@ -124,8 +124,8 @@ public class EnemyTest : MonoBehaviour, IEnemy
     {
         if (explosionTimer == ExplosionEndTime)
         {
-            var playerCollider = Player.GetComponent<CustomRectangleCollider>();
-            var selfCollider = GetComponent<CustomRectangleCollider>();
+            var playerCollider = Player.GetComponent<Collider2D>();
+            var selfCollider = GetComponent<Collider2D>();
             if (playerCollider.IsTouching(selfCollider))
             {
                 var popDamage = GameObject.FindGameObjectWithTag("Helper").GetComponent<PopDamage>();
